@@ -2,11 +2,14 @@ import numpy as np
 
 class CVertex():
 
-    def __init__(self):
-        return
+    def __init__(self, ID, x, y):
+        self.SetID(ID)
+        self.SetCoordinates(x, y)
     
     def SetID(self, ID):
-        self.ID = ID
+        if hasattr(self, 'ID'):
+            raise KeyError('Already specified ID!')
+        self.ID = int(ID)
     
     def SetCoordinates(self, x, y):
         self.x = x
