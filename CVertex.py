@@ -21,11 +21,11 @@ class CVertex():
     def SetGradient(self, gradient):
         self.gradient = gradient
 
-    def SetVerticesNeighboursID(self, vertex_IDs):
-        self.vertices_neighbours_IDs = vertex_IDs
+    def SetVerticesNeighboursID(self, vertexIDs):
+        self.verticesNeighboursIDs = vertexIDs
 
-    def SetElementsNeighboursID(self, elements_IDs):
-        self.elements_neighbours_IDs = elements_IDs
+    def SetElementsNeighboursID(self, elementsIDs):
+        self.elementsNeighboursIDs = elementsIDs
 
     def GetID(self):
         return self.ID
@@ -40,10 +40,10 @@ class CVertex():
         return self.gradient
     
     def GetVerticesNeighboursID(self):
-        return self.vertices_neighbours_IDs 
+        return self.verticesNeighboursIDs 
 
     def GetElementsNeighboursID(self):
-        return self.elements_neighbours_IDs 
+        return self.elementsNeighboursIDs 
 
 
 

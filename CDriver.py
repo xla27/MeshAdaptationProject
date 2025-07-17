@@ -17,3 +17,22 @@
 
 # loop sui vertices per i calcolo della media nodewise
 # scrittura file .sol con metrica nodewise
+import numpy as np
+
+from CMesh import CMesh
+from CElement import CElement
+from CVertex import CVertex
+
+class CDriver():
+
+    def __init__(self, parameters):
+        return
+    
+    def ReadSU2(self, meshFilename, solFilename):
+
+        mesh = CMesh()
+
+        # reading mesh .su2
+        mesh.ReadMeshSU2(meshFilename)
+
+        #

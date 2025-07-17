@@ -1,6 +1,6 @@
 import numpy as np
 
-class CElements():
+class CElement():
 
     def __init__(self, ID):
         self.SetID(ID)
@@ -10,19 +10,30 @@ class CElements():
             raise KeyError('Already specified ID!')
         self.ID = int(ID)
 
-    def SetVertices(self, vertex1, vertex2, vertex3):
-        self.vertices = [vertex1, vertex2, vertex3]
+    def SetVerticesID(self, listID):
+        self.verticesID = listID
+
+    def SetVertices(self, mesh):
+        self.vertices = []
+        for id in self.verticesID:
+            self.vertices.append(mesh.GetVertex(id))
     
     def SetPatchID(self):
-        patch_elements_ID = []
+        patchElementsID = []
         for vertex in self.vertices:
-            patch_elements_ID.append(vertex.GetElementsNeighboursID())
-        self.patch_elements_ID = list(set(patch_elements_ID))
+            patchElementsID.append(vertex.GetElementsNeighboursID())
+        self.patchElementsID = list(set(patchElementsID))
 
     def SetPatchElements(self, mesh):
-        self.patch_elements = []
-        for id in self.patch_elements_ID:
-            self.patch_elements.append(mesh.GetElement(id))
+        self.patchElements = []
+        for id in self.patchElementsID:
+            self.patchElements.append(mesh.GetElement(id))
+
+    def GetID(self):
+        return self.ID
+
+    def GetVerticesID(self):
+        return self.verticesID
     
     def GetVertices(self):
         return self.vertices
@@ -31,7 +42,7 @@ class CElements():
         return self.area
     
     def GetPatchArea(self):
-        return self.patch_area
+        return self.patchArea
     
     def GetGradient(self):
         return self.gradient
@@ -40,24 +51,24 @@ class CElements():
         return NotImplementedError
     
     def ComputePatchArea(self):
-        self.patch_area = 0.0
-        for elem in self.patch_elements:
-            self.patch_area += elem.GetArea()
+        self.patchArea = 0.0
+        for elem in self.patchElements:
+            self.patchArea += elem.GetArea()
     
     def ComputeGradient(self):
-        gradients_vertices = []
+        gradientsVertices = []
         for vertex in self.vertices:
-            gradients_vertices.append(vertex.GetGradient())
+            gradientsVertices.append(vertex.GetGradient())
 
         # Interpolazione
         #self.gradient = [gradient_x, gradient_y]
         return NotImplementedError
 
     def ComputePatchAveragedGradient(self):
-        patch_avg_gradient = 0.0
-        for elem in self.patch_elements:
-            patch_avg_gradient += elem.GetArea() * elem.GetGradient()
-        self.patch_avg_gradient = patch_avg_gradient / self.GetPatchArea()
+        patchAvgGradient = 0.0
+        for elem in self.patchElements:
+            patchAvgGradient += elem.GetArea() * elem.GetGradient()
+        self.patchAvgGradient = patchAvgGradient / self.GetPatchArea()
 
 
 
