@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 from CElement import CElement
 from CVertex import CVertex
@@ -84,16 +85,59 @@ class CMesh():
                 return match[0]
 
     def GetVertex(self, ID):
-        for vertex in self.meshDict['Vertices']:
-            if ID == vertex.GetID():
-                return vertex
+        return self.VertexElementlookup['Vertices'].get(ID)
 
     def GetElement(self, ID):
-        key = 'Triangles' if self.GetDim() == 2 else 'Tetrahedra'
-        for element in self.meshDict[key]:
-            if ID == element.GetID():
-                return element
+        return self.VertexElementlookup['Elements'].get(ID)
 
+    def SetVertexElementLookup(self):
+        keyElem = 'Triangles' if self.dim == 2 else 'Tetrahedra'
+        self.VertexElementlookup = {
+            'Vertices': {vert.GetID(): vert for vert in self.meshDict['Vertices']},
+            'Elements': {elem.GetID(): elem for elem in self.meshDict[keyElem]}
+        }
+
+    def FinalizingDataStructure(self):
+        '''
+        For each vertex:
+        - setting neighbouring elements
+        - setting neighbouring points
+        
+        For each element
+        - setting vertices through IDs
+        - characterizng patch
+        '''
+
+        verticesID = [vert.GetID() for vert in self.meshDict['Vertices']]
+
+        # helper to set the vertex eighbouring points
+        verticesNeighbours = {vertID: set() for vertID in verticesID}
+        # helper to set the vertex eighbouring elements
+        elementsNeighbours = copy.deepcopy(verticesNeighbours)
+
+        keyElem = 'Triangles' if self.dim == 2 else 'Tetrahedra'
+        for element in self.meshDict[keyElem]:
+
+            # setting the vertices (CVertex instances) belonging to each element
+            element.SetVertices(self)
+            eid = element.GetID()
+
+            # adding the vertex neighbouring IDs iteratively looping on the elements
+            vids = element.GetVerticesID()
+            n = len(vids)
+            for i in range(n):
+                vi = vids[i]
+                for j in range(i + 1, n):
+                    vj = vids[j]
+                    verticesNeighbours[vi].add(vj)
+                    verticesNeighbours[vj].add(vi)
+                    elementsNeighbours[vi].add(eid)
+                    elementsNeighbours[vj].add(eid)
+
+        for vert in self.meshDict['Vertices']:
+            vert.SetVerticesNeighboursID(list(verticesNeighbours[vert.GetID()]))
+            vert.SetElementsNeighboursID(list(elementsNeighbours[vert.GetID()]))
+     
     def ReadMeshSU2(self, su2Filename):
         """ 
         Reads a .su2 mesh file and returns node coordinates, elements, and boundary markers in a dictionary data structure. 
@@ -124,7 +168,7 @@ class CMesh():
                 if dim == 2:
                     for j in range(nVertices):
                         x, y = lines[i + 1 + j].split()[:dim]
-                        vertex = CVertex(j, x, y)
+                        vertex = CVertex(j, float(x), float(y))
                         vertices.append(vertex)
                 elif dim == 3:
                     raise NotImplementedError('only 2D atm!')
@@ -172,6 +216,7 @@ class CMesh():
             meshDict['Triangles'] =  boundaries
 
         self.SetMeshDict(meshDict)
+        self.SetVertexElementLookup()
         self.SetSU2MeditMarkersMap(su2MarkersList)
 
         return meshDict
@@ -494,13 +539,15 @@ def read_SU2_restart_binary(mesh, sensor, filename):
         meshDict = mesh.GetMeshDict()
     except:
         raise ValueError('The mesh has not been read yet!')
+    
+    print(restartFields)
 
     if 'z' in restartFields:
         meshDict['Dim'] = 3
-        fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y']
+        fieldsToRead = [sensor]#, 'Grad(Sensor)_x', 'Grad(Sensor)_y']
     else:
         meshDict['Dim'] = 2  
-        fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y', 'Grad(Sensor)_z']
+        fieldsToRead = [sensor]#, 'Grad(Sensor)_x', 'Grad(Sensor)_y', 'Grad(Sensor)_z']
 
     for iPoint in range(nPoints):
         vert = mesh.GetVertex(iPoint)
