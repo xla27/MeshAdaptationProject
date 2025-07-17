@@ -565,4 +565,3 @@ def read_SU2_restart_ascii(mesh, sensor, filename):
         vert.SetSolution(solution)
         vert.SetGradient(gradient)
 
-    return metric_dict
