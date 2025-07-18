@@ -54,7 +54,7 @@ class CDriver():
 
         keyElem = 'Triangles' if dim == 2 else 'Tetrahedra'
 
-        print('Im computing the fucking metric')
+        print('\tStart metric computation.')
 
         # computing the element-wise metric
         for element in meshDict[keyElem]:
@@ -81,6 +81,8 @@ class CDriver():
         for vertex in meshDict['Vertices']:
 
             vertex.ComputeMetric(self.mesh)
+
+        print('\tEnd metric computation.')
 
     def WriteMedit(self, meditFilename, solFilename):
 
