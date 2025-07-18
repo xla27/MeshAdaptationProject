@@ -209,11 +209,12 @@ class CElement():
 
         toll = params['toll']
         card = params['card']
+        diam = params['diam']
 
         self.ComputeLambdak()
         referencePatchArea = self.GetPatchArea() / (self.lambda_k[0] * self.lambda_k[1])
 
-        valGmin = np.sqrt(2)**(-2) * toll**2 / (2 * card * referencePatchArea)
+        valGmin = np.sqrt(diam)**(-2) * toll**2 / (2 * card * referencePatchArea)
 
         valG1 = max(valG1, valGmin)
         valG2 = max(valG2, valGmin)

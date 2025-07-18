@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.spatial.distance import pdist
 import copy
 
 from CElement import CElement
@@ -548,6 +549,7 @@ def read_SU2_restart_binary(mesh, sensor, filename):
         meshDict['Dim'] = 2  
         fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y']
 
+    coords = np.zeros((nPoints, meshDict['Dim']))
     for iPoint in range(nPoints):
         vert = mesh.GetVertex(iPoint)
         solution = 0.0
@@ -561,6 +563,13 @@ def read_SU2_restart_binary(mesh, sensor, filename):
 
         vert.SetSolution(solution)
         vert.SetGradient(gradient)
+
+        coords[iPoint, 0] = data[iPoint, restartFields.index('x')]
+        coords[iPoint, 1] = data[iPoint, restartFields.index('y')]
+        if meshDict['Dim'] == 3:
+            coords[iPoint, 2] = data[iPoint, restartFields.index('x')]
+
+    mesh.diameter = np.amax(pdist(coords))
 
 
 def read_SU2_restart_ascii(mesh, sensor, filename):
@@ -597,6 +606,7 @@ def read_SU2_restart_ascii(mesh, sensor, filename):
         meshDict['Dim'] = 2  
         fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y']
 
+    coords = np.zeros((nPoints, meshDict['Dim']))
     for iPoint in range(nPoints):
         vert = mesh.GetVertex(iPoint)
         solution = 0.0
@@ -611,3 +621,9 @@ def read_SU2_restart_ascii(mesh, sensor, filename):
         vert.SetSolution(solution)
         vert.SetGradient(gradient)
 
+        coords[iPoint, 0] = data[iPoint, restartFields.index('x')]
+        coords[iPoint, 1] = data[iPoint, restartFields.index('y')]
+        if meshDict['Dim'] == 3:
+            coords[iPoint, 2] = data[iPoint, restartFields.index('x')]
+
+    mesh.diameter = np.amax(pdist(coords))

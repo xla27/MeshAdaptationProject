@@ -42,6 +42,9 @@ class CDriver():
         # reading the solution
         self.mesh.ReadSolSU2(self.sensor, self.solFilename)
 
+        # setting the mesh diameter as param
+        self.params['diam'] = self.mesh.diameter
+
         # finalizing data structure
         self.mesh.FinalizingDataStructure()
 
