@@ -104,15 +104,35 @@ class CElement():
 
         def patchAvgGradient_x(x,y):
             patchAvgGradient_x = 0.0
+            borderCount = 0.0
             for elem in self.patchElements:
-                patchAvgGradient_x += elem.GetArea() * elem.GetGradient()[0](x,y)
-            return patchAvgGradient_x
+                inside, border = PointInTriangle([x,y], 
+                                                    elem.GetVertices()[0].GetCoordinates(),
+                                                    elem.GetVertices()[1].GetCoordinates(), 
+                                                    elem.GetVertices()[2].GetCoordinates())
+                if border:
+                    elem_border = elem 
+                    borderCount += 1
+                patchAvgGradient_x += elem.GetArea() * elem.GetGradient()[0](x,y) * inside 
+            if borderCount:
+                patchAvgGradient_x = elem_border.GetArea() * elem_border.GetGradient()[0](x,y)
+            return patchAvgGradient_x / self.GetPatchArea() 
         
         def patchAvgGradient_y(x,y):
             patchAvgGradient_y = 0.0
+            borderCount = 0.0
             for elem in self.patchElements:
-                patchAvgGradient_y += elem.GetArea() * elem.GetGradient()[1](x,y)
-            return patchAvgGradient_y
+                inside, border = PointInTriangle([x,y], 
+                                                    elem.GetVertices()[0].GetCoordinates(),
+                                                    elem.GetVertices()[1].GetCoordinates(), 
+                                                    elem.GetVertices()[2].GetCoordinates())
+                if border:
+                    elem_border = elem 
+                    borderCount += 1
+                patchAvgGradient_y += elem.GetArea() * elem.GetGradient()[1](x,y) * inside 
+            if borderCount:
+                patchAvgGradient_y = elem_border.GetArea() * elem_border.GetGradient()[1](x,y)
+            return patchAvgGradient_y / self.GetPatchArea() 
 
         self.patchAvgGradient = [patchAvgGradient_x, patchAvgGradient_y]
 
@@ -209,7 +229,38 @@ class CElement():
         self.metric = RkNewT @ lambdaNew**(-2) @ RkNewT.T
 
 
+def PointInTriangle(P, A, B, C):
+    def dot(u, v): return u[0]*v[0] + u[1]*v[1]
 
+    v0 = (C[0] - A[0], C[1] - A[1])
+    v1 = (B[0] - A[0], B[1] - A[1])
+    v2 = (P[0] - A[0], P[1] - A[1])
+
+    d00 = dot(v0, v0)
+    d01 = dot(v0, v1)
+    d11 = dot(v1, v1)
+    d20 = dot(v2, v0)
+    d21 = dot(v2, v1)
+
+    denom = d00 * d11 - d01 * d01
+    v = (d11 * d20 - d01 * d21) / denom
+    w = (d00 * d21 - d01 * d20) / denom
+    u = 1 - v - w
+
+    if (u > 0) and (v > 0) and (w > 0):
+        inside = 1.0
+    else:
+        inside = 0.0
+
+    if (u == 0) or (v == 0) or (w == 0):
+        if (u < 0) or (v < 0) or (w < 0):
+            border = False
+        else:
+            border = True
+    else:
+        border = False
+
+    return inside, border
 
 
 
