@@ -402,22 +402,26 @@ class CMesh():
         """
         metricDict = self.GetMetricDict()
 
-        dim = metricDict['Dim']
-        numvert = metricDict['NumberVertices']
+        dim = self.meshDict['Dim']
+        nVert = self.meshDict['NumberVertices']
 
-        header = 'MeshVersionFormatted 2\nDimension %i\nSolAtVertices\n%i\n1 3\n' % (dim , numvert)
+        header = 'MeshVersionFormatted 2\nDimension %i\nSolAtVertices\n%i\n1 3\n' % (dim , nVert)
         footer = '\nEnd\n'
 
-        solData = np.empty((numvert,0))
+        metricDim = 3 if dim == 2 else 6
+        solData = np.zeros((nVert, metricDim))
 
-        solData = np.hstack((solData, metricDict['Metric_xx'][:,np.newaxis]))
-        solData = np.hstack((solData, metricDict['Metric_xy'][:,np.newaxis]))
-        solData = np.hstack((solData, metricDict['Metric_yy'][:,np.newaxis]))
+        for iVert, vertex in enumerate(self.meshDict['Vertices']):
+            metric = vertex.GetMetric()
 
-        if dim == 3:
-            solData = np.hstack((solData, metricDict['Metric_xz'][:,np.newaxis]))
-            solData = np.hstack((solData, metricDict['Metric_yz'][:,np.newaxis]))
-            solData = np.hstack((solData, metricDict['Metric_zz'][:,np.newaxis]))
+            solData[iVert, 0] = metric[0,0]
+            solData[iVert, 1] = metric[0,1]
+            solData[iVert, 2] = metric[1,1]
+
+            if dim == 3:
+                solData[iVert, 3] = metric[0,2]
+                solData[iVert, 4] = metric[1,2]
+                solData[iVert, 5] = metric[2,2]
 
         np.savetxt(meditFilename, solData, delimiter=' ', header=header, footer=footer, comments='', fmt='%1.5e')
         
