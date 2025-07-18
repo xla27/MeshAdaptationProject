@@ -199,7 +199,7 @@ class CElement():
         referencePatchG[1,1] = patchG[2] / self.GetPatchArea()
         referencePatchG[1,0] = referencePatchG[0,1]
 
-        eigenValRefG, eigenVecRefG = eig(referencePatchG)
+        eigenValRefG, eigenVecRefG = np.linalg.eigh(referencePatchG)
         idx = eigenValRefG.argsort()[::-1]   
         eigenValRefG = eigenValRefG[idx]
         eigenVecRefG = eigenVecRefG[:,idx]
@@ -223,10 +223,10 @@ class CElement():
         lambda_1 = factor * valG2**(-0.5)
         lambda_2 = factor * valG1**(-0.5)
 
-        lambdaNew = np.diag([lambda_1, lambda_2])
+        lambdaNewm2 = np.diag(np.array([lambda_1, lambda_2])**(-2))
         RkNewT = np.hstack((vecG2[:,np.newaxis], vecG1[:,np.newaxis]))
 
-        self.metric = RkNewT @ lambdaNew**(-2) @ RkNewT.T
+        self.metric = RkNewT @ lambdaNewm2 @ np.transpose(RkNewT)
 
 
 def PointInTriangle(P, A, B, C):
