@@ -44,6 +44,22 @@ class CVertex():
 
     def GetElementsNeighboursID(self):
         return self.elementsNeighboursIDs 
+    
+    def GetMetric(self):
+        return self.metric
+    
+    def ComputeMetric(self, mesh):
+        elementsTotalArea = 0.0
+        elementsMetricSum = np.zeros((2,2)) if mesh.dim == 2 else np.zeros((3,3))
+        for id in self.elementsNeighboursIDs:
+            element = mesh.GetElement(id)
+            area = element.GetArea()
+            metric = element.GetMetric()
+            elementsTotalArea += area
+            elementsMetricSum += area * metric
+        self.metric = elementsMetricSum / elementsTotalArea
+
+
 
 
 
