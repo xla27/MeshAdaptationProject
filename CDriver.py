@@ -25,23 +25,27 @@ from CVertex import CVertex
 
 class CDriver():
 
-    def __init__(self, parameters):
+    def __init__(self, sensor, meshFilename, solFilename, params):
+        self.sensor = sensor
+        self.meshFilename = meshFilename
+        self.solFilename = solFilename
+        self.params = params
         return
     
-    def Initialize(self, meshFilename, solFilename):
+    def ReadSU2(self):
 
         self.mesh = CMesh()
 
         # reading mesh .su2
-        self.mesh.ReadMeshSU2(meshFilename)
+        self.mesh.ReadMeshSU2(self.meshFilename)
 
         # reading the solution
-        self.mesh.ReadSolSU2(solFilename)
+        self.mesh.ReadSolSU2(self.sensor, self.solFilename)
 
         # finalizing data structure
         self.mesh.FinalizingDataStructure()
 
-    def Run(self):
+    def ComputeMetric(self):
 
         # mesh data structure
         meshDict = self.mesh.GetMeshDict()
@@ -49,6 +53,8 @@ class CDriver():
         dim = self.mesh.GetDim()
 
         keyElem = 'Triangles' if dim == 2 else 'Tetrahedra'
+
+        print('Im computing the fucking metric')
 
         # computing the element-wise metric
         for element in meshDict[keyElem]:
@@ -69,20 +75,31 @@ class CDriver():
             # computing the average patch gradient
             element.ComputePatchAveragedGradient()
 
-            element.ComputeMetric()
+            element.ComputeMetric(self.params)
 
         # computing the vertex-wise metric
         for vertex in meshDict['Vertices']:
-            
+
             vertex.ComputeMetric(self.mesh)
 
-    def Finalize(self, meditFilename, solFilename):
+    def WriteMedit(self, meditFilename, solFilename):
 
         # writing the mesh in medit format
         self.mesh.WriteMeshMedit(meditFilename)
 
         # writing the solution in sol format
         self.mesh.WriteSolMedit(solFilename)
+
+        # write mmg parameters file
+        self.mesh.WriteParamFile(self.params, meditFilename)
+
+    def ReadMedit(self, meditFilename):
+        self.mesh.ReadMeshMedit(meditFilename)
+
+    def WriteSU2(self, su2Filename):
+
+        self.mesh.WriteMeshSU2(su2Filename)
+
 
 
 

@@ -193,6 +193,11 @@ class CElement():
         self.ComputeLambdak()
         referencePatchArea = self.GetPatchArea() / (self.lambda_k[0] * self.lambda_k[1])
 
+        valGmin = np.sqrt(2)**(-2) * toll**2 / (2 * card * referencePatchArea)
+
+        valG1 = max(valG1, valGmin)
+        valG2 = max(valG2, valGmin)
+
         factor = (toll**2 / (2 * card * referencePatchArea))**0.5
 
         lambda_1 = factor * valG2**(-0.5)

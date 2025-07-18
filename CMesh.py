@@ -251,8 +251,6 @@ class CMesh():
                 self.SetDim(dim)
 
             elif line.startswith("Vertices"):
-                print(line)
-                print(lines[i+1])
                 nVert = int(lines[i+1])
                 if dim == 2:
                     for j in range(nVert):
@@ -269,7 +267,7 @@ class CMesh():
 
             elif (line.startswith("Triangles") and dim == 2) or (line.startswith("Tetrahedra") and dim == 3):
                 nElements = int(lines[i+1])
-                elements = [None]*nElements
+                elements = []
                 for j in range(nElements):
                     elemData = list(map(int, lines[i + 2 + j].split()))
                     elemData = [elem-1 for elem in elemData]
@@ -402,7 +400,7 @@ class CMesh():
         """
 
         dim = self.meshDict['Dim']
-        nVert = self.meshDict['NumberVertices']
+        nVert = len(self.meshDict['Vertices'])
 
         header = 'MeshVersionFormatted 2\nDimension %i\nSolAtVertices\n%i\n1 3\n' % (dim , nVert)
         footer = '\nEnd\n'
@@ -542,15 +540,13 @@ def read_SU2_restart_binary(mesh, sensor, filename):
         meshDict = mesh.GetMeshDict()
     except:
         raise ValueError('The mesh has not been read yet!')
-    
-    print(restartFields)
 
     if 'z' in restartFields:
         meshDict['Dim'] = 3
-        fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y']
+        fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y', 'Grad(Sensor)_z']
     else:
         meshDict['Dim'] = 2  
-        fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y', 'Grad(Sensor)_z']
+        fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y']
 
     for iPoint in range(nPoints):
         vert = mesh.GetVertex(iPoint)
@@ -596,10 +592,10 @@ def read_SU2_restart_ascii(mesh, sensor, filename):
 
     if 'z' in restartFields:
         meshDict['Dim'] = 3
-        fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y']
+        fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y', 'Grad(Sensor)_z']
     else:
         meshDict['Dim'] = 2  
-        fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y', 'Grad(Sensor)_z']
+        fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y']
 
     for iPoint in range(nPoints):
         vert = mesh.GetVertex(iPoint)
