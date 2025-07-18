@@ -400,7 +400,6 @@ class CMesh():
         """ 
         Writes a .sol Medit file from given metric data. 
         """
-        metricDict = self.GetMetricDict()
 
         dim = self.meshDict['Dim']
         nVert = self.meshDict['NumberVertices']
