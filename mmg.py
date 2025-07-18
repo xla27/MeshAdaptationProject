@@ -79,13 +79,14 @@ def mmg(config):
     flow_cfl  = get_flow_cfl(config)
 
     adap_sensors = get_adap_sensors(config)
-    sensor_avail = ['MACH', 'PRESSURE', 'TEMPERATURE', 'ENERGY', 'DENSITY', 'TOTALPRESSURE']
+    sensor_avail = ['MACH', 'PRESSURE', 'TEMPERATURE', 'ENERGY', 'DENSITY']
+    sensor_avail_restart_format = ['Mach', 'Pressure', 'Temperature', 'Energy', 'Density']
 
     for sensor in adap_sensors:
         if sensor not in sensor_avail:
             raise ValueError(f'Unknown adaptation sensor {sensor}. Available options are {sensor_avail}.')
         
-    sensor = 'Pressure'
+    sensor = sensor_avail_restart_format[sensor_avail.index(sensor)]
 
     #--- Change current directory
 
@@ -140,8 +141,8 @@ def mmg(config):
     #--- MMG parameters
 
     config_mmg = get_mmg_config(config, dim)
-    config_mmg['toll'] = 1
-    config_mmg['card'] = 800
+    config_mmg['toll'] = float(config.ADAP_TOLL)
+    config_mmg['card'] = float(mesh_sizes[0])
 
     #--- Compute initial solution if needed, else link current files
 
@@ -171,7 +172,7 @@ def mmg(config):
     if '.csv' in config.RESTART_FILENAME:
         config_cfd.READ_BINARY_RESTART = 'NO'
         sol_ext_cfd = '.csv'
-        config_cfd.OUTPUT_FILES = ['RESTART_CSV','PARAVIEW','SURFACE_PARAVIEW']
+        config_cfd.OUTPUT_FILES = ['RESTART_ASCII','PARAVIEW','SURFACE_PARAVIEW']
     else:
         sol_ext_cfd = '.dat'
         config_cfd.OUTPUT_FILES = ['RESTART','PARAVIEW','SURFACE_PARAVIEW']
