@@ -544,10 +544,10 @@ def read_SU2_restart_binary(mesh, sensor, filename):
 
     if 'z' in restartFields:
         meshDict['Dim'] = 3
-        fieldsToRead = [sensor]#, 'Grad(Sensor)_x', 'Grad(Sensor)_y']
+        fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y']
     else:
         meshDict['Dim'] = 2  
-        fieldsToRead = [sensor]#, 'Grad(Sensor)_x', 'Grad(Sensor)_y', 'Grad(Sensor)_z']
+        fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y', 'Grad(Sensor)_z']
 
     for iPoint in range(nPoints):
         vert = mesh.GetVertex(iPoint)
