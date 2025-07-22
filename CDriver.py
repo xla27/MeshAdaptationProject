@@ -27,6 +27,7 @@ class CDriver():
 
         # finalizing data structure
         self.mesh.FinalizingDataStructure()
+        self.params['card'] = self.mesh.cardinality
 
     def ComputeMetric(self):
 
