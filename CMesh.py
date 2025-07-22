@@ -138,6 +138,9 @@ class CMesh():
         for vert in self.meshDict['Vertices']:
             vert.SetVerticesNeighboursID(list(verticesNeighbours[vert.GetID()]))
             vert.SetElementsNeighboursID(list(elementsNeighbours[vert.GetID()]))
+
+        # computing the mesh cardinality
+        self.cardinality = len(self.meshDict[keyElem])
      
     def ReadMeshSU2(self, su2Filename):
         """ 

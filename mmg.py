@@ -142,7 +142,6 @@ def mmg(config):
 
     config_mmg = get_mmg_config(config, dim)
     config_mmg['toll'] = float(config.ADAP_TOLL)
-    config_mmg['card'] = float(mesh_sizes[0])
 
     #--- Compute initial solution if needed, else link current files
 
