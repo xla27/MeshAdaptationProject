@@ -40,6 +40,7 @@ class CDriver():
         print('\tStart metric computation.')
 
         # computing the element-wise metric
+        limited = 0
         for element in meshDict[keyElem]:
 
             # compute element area
@@ -56,9 +57,12 @@ class CDriver():
             element.ComputePatchArea()
 
             # computing the element-wise metric
-            element.ComputeMetric(toll=self.params['toll'], 
-                                  diam=self.params['diam'], 
-                                  card=self.params['card'])
+            limited += element.ComputeMetric(toll=self.params['toll'], 
+                                            diam=self.params['diam'], 
+                                            card=self.params['card'])
+            
+        print('\t\tAspect ratio limited by gmin in %i out of %i elements' %
+              (limited, len(meshDict[keyElem])))
 
         # computing the vertex-wise metric
         for vertex in meshDict['Vertices']:

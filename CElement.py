@@ -177,6 +177,8 @@ class CElement():
         valG1 = max(np.real(eigenValRefG[0]), valGmin)
         valG2 = max(np.real(eigenValRefG[1]), valGmin)
 
+        limited = 1 if valG2 == valGmin or valG1 == valGmin else 0
+
         factor = (toll**2 / (2 * card * referencePatchArea))**0.5
 
         lambda_1 = factor * valG2**(-0.5)
@@ -186,6 +188,8 @@ class CElement():
         RkNewT = np.hstack((vecG2[:,np.newaxis], vecG1[:,np.newaxis]))
 
         self.metric = RkNewT @ lambdaNewm2 @ np.transpose(RkNewT)
+
+        return limited
 
 
 def ComputeError(elem, x, y, patchArea):
