@@ -2,7 +2,7 @@ import numpy as np
 from scipy.spatial.distance import pdist
 import copy
 
-from CElement import CElement
+from elements import CTriangle, CTetrahedron
 from CVertex import CVertex
 class CMesh():
     """
@@ -175,19 +175,20 @@ class CMesh():
                         vertex = CVertex(j, float(x), float(y))
                         vertices.append(vertex)
                 elif dim == 3:
-                    raise NotImplementedError('only 2D atm!')
                     for j in range(nVertices):
                         x, y, z = lines[i + 1 + j].split()[:dim]
-                        vertices.append([float(x), float(y), float(z)])
+                        vertex = CVertex(j, float(x), float(y), z=float(z))
+                        vertices.append(vertex)
                 i += nVertices  # Move index past nodes
 
             elif line.startswith("NELEM="):
                 nElements = int(line.split("=")[1].strip())
                 for j in range(nElements):
                     elemType, *idVert = lines[i + 1 + j].split()[:(dim+2)]
-                    element = CElement(j)
+                    element = CTriangle(j) if dim == 2 else CTetrahedron(j)
                     element.SetVerticesID([int(vert) for vert in idVert])
                     elements.append(element)
+
                 i += nElements  # Move index past elements
 
             elif line.startswith("NMARK="):
@@ -259,13 +260,13 @@ class CMesh():
                 if dim == 2:
                     for j in range(nVert):
                         x, y, idDom = lines[i + 2 + j].split()
-                        vertex = CVertex(j, x, y)
+                        vertex = CVertex(j, float(x), float(y))
                         vertices.append(vertex)
                 elif dim == 3:
-                    raise NotImplementedError('only 2D atm!')
                     for j in range(nVert):
                         x, y, z, idDom = lines[i + 2 + j].split()
-                        vertices.append([float(x), float(y), float(z)])
+                        vertex = CVertex(j, float(x), float(y), z=float(z))
+                        vertices.append(vertex)
                     
                 i += nVert  # Move index past nodes
 
@@ -275,7 +276,7 @@ class CMesh():
                 for j in range(nElements):
                     elemData = list(map(int, lines[i + 2 + j].split()))
                     elemData = [elem-1 for elem in elemData]
-                    element = CElement(j)
+                    element = CTriangle(j) if dim == 2 else CTetrahedron(j)
                     element.SetVerticesID([int(vert) for vert in elemData[:-1]]) # Last column is a region marker
                     elements.append(element)
                 i += nElements  # Move index past elements             
@@ -570,7 +571,7 @@ def read_SU2_restart_binary(mesh, sensor, filename):
         coords[iPoint, 0] = data[iPoint, restartFields.index('x')]
         coords[iPoint, 1] = data[iPoint, restartFields.index('y')]
         if meshDict['Dim'] == 3:
-            coords[iPoint, 2] = data[iPoint, restartFields.index('x')]
+            coords[iPoint, 2] = data[iPoint, restartFields.index('z')]
 
     mesh.diameter = np.amax(pdist(coords))
 
@@ -627,6 +628,6 @@ def read_SU2_restart_ascii(mesh, sensor, filename):
         coords[iPoint, 0] = data[iPoint, restartFields.index('x')]
         coords[iPoint, 1] = data[iPoint, restartFields.index('y')]
         if meshDict['Dim'] == 3:
-            coords[iPoint, 2] = data[iPoint, restartFields.index('x')]
+            coords[iPoint, 2] = data[iPoint, restartFields.index('z')]
 
     mesh.diameter = np.amax(pdist(coords))

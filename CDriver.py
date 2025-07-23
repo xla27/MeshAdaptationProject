@@ -40,28 +40,32 @@ class CDriver():
 
         print('\tStart metric computation.')
 
-        # computing the element-wise metric
-        limited = 0
+        # computing the element-wise volume and gradient
         for element in meshDict[keyElem]:
 
-            # compute element area
-            element.ComputeArea()
+            # compute element volume
+            element.ComputeVolume()
 
             # computing the gradient on the element
             element.ComputeGradient()
+
+
+        # computing the element-wise metric
+        limited = 0
+        for element in meshDict[keyElem]:
 
             # creating the element patch
             element.SetPatchID()
             element.SetPatchElements(self.mesh)
 
-            # computing the patch area
-            element.ComputePatchArea()
+            # computing the patch volume
+            element.ComputePatchVolume()
 
             # computing the element-wise metric
             limited += element.ComputeMetric(toll=self.params['toll'], 
                                             diam=self.params['diam'], 
                                             card=self.params['card'])
-            
+           
         print('\t\tAspect ratio limited by gmin in %i out of %i elements' %
               (limited, len(meshDict[keyElem])))
 

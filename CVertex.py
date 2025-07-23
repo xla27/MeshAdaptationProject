@@ -2,18 +2,23 @@ import numpy as np
 
 class CVertex():
 
-    def __init__(self, ID, x, y):
+    def __init__(self, ID, x, y, z=None):
         self.SetID(ID)
-        self.SetCoordinates(x, y)
+        if z is not None:
+            self.SetCoordinates(x, y, z=z)
+        else:
+            self.SetCoordinates(x, y)
     
     def SetID(self, ID):
         if hasattr(self, 'ID'):
             raise KeyError('Already specified ID!')
         self.ID = int(ID)
     
-    def SetCoordinates(self, x, y):
+    def SetCoordinates(self, x, y, z=None):
         self.x = x
         self.y = y
+        if z is not None:
+            self.z = z
 
     def SetSolution(self, solution):
         self.solution = solution
@@ -31,7 +36,10 @@ class CVertex():
         return self.ID
     
     def GetCoordinates(self):
-        return self.x, self.y
+        if hasattr(self,'z'):
+            return self.x, self.y, self.z
+        else:   
+            return self.x, self.y
     
     def GetSolution(self):
         return self.solution
@@ -49,15 +57,15 @@ class CVertex():
         return self.metric
     
     def ComputeMetric(self, mesh):
-        elementsTotalArea = 0.0
-        elementsMetricSum = np.zeros((2,2)) if mesh.dim == 2 else np.zeros((3,3))
+        elementsTotalVolume = 0.0
+        elementsMetricSum = np.zeros((2,2)) if mesh.GetDim() == 2 else np.zeros((3,3))
         for id in self.elementsNeighboursIDs:
             element = mesh.GetElement(id)
-            area = element.GetArea()
+            volume = element.GetVolume()
             metric = element.GetMetric()
-            elementsTotalArea += area
-            elementsMetricSum += area * metric
-        self.metric = elementsMetricSum / elementsTotalArea
+            elementsTotalVolume += volume
+            elementsMetricSum += volume * metric
+        self.metric = elementsMetricSum / elementsTotalVolume
 
 
 

@@ -1,75 +1,23 @@
 import numpy as np
 from scipy.linalg import polar, eig
 
-class CElement():
+from elements.CElement import CElement
+
+class CTriangle(CElement):
 
     def __init__(self, ID):
         self.SetID(ID)
 
-    def SetID(self, ID):
-        if hasattr(self, 'ID'):
-            raise KeyError('Already specified ID!')
-        self.ID = int(ID)
-
-    def SetVerticesID(self, listID):
-        self.verticesID = listID
-
-    def SetVertices(self, mesh):
-        self.vertices = []
-        for id in self.verticesID:
-            self.vertices.append(mesh.GetVertex(id))
-    
-    def SetPatchID(self):
-        patchElementsID = []
-        for vertex in self.vertices:
-            patchElementsID += vertex.GetElementsNeighboursID()
-        self.patchElementsID = list(set(patchElementsID))
-
-    def SetPatchElements(self, mesh):
-        self.patchElements = []
-        for id in self.patchElementsID:
-            self.patchElements.append(mesh.GetElement(id))
-
-    def GetID(self):
-        return self.ID
-
-    def GetVerticesID(self):
-        return self.verticesID
-    
-    def GetVertices(self):
-        return self.vertices
-    
-    def GetPatchElements(self):
-        return self.patchElements
-    
-    def GetArea(self):
-        if not hasattr(self, 'area'):
-            self.ComputeArea()
-        return self.area
-    
-    def GetPatchArea(self):
-        return self.patchArea
-        
-    def GetGradient(self):
-        if not hasattr(self, 'gradient'):
-            self.ComputeGradient()
-        return self.gradient
-    
-    def GetMetric(self):
-        if not hasattr(self, 'metric'):
-            self.ComputeMetric()
-        return self.metric
-
-    def ComputeArea(self):
+    def ComputeVolume(self):
         x1,y1 = self.vertices[0].GetCoordinates()
         x2,y2 = self.vertices[1].GetCoordinates()
         x3,y3 = self.vertices[2].GetCoordinates()
-        self.area = (1/2) * abs(x1*(y2 - y3) - x2*(y1 - y3) + x3*(y1 - y2))
+        self.volume = (1/2) * abs(x1*(y2 - y3) - x2*(y1 - y3) + x3*(y1 - y2))
     
-    def ComputePatchArea(self):
-        self.patchArea = 0.0
+    def ComputePatchVolume(self):
+        self.patchVolume = 0.0
         for elem in self.patchElements:
-            self.patchArea += elem.GetArea()
+            self.patchVolume += elem.GetVolume()
     
     def ComputeGradient(self):
         x1,y1 = self.vertices[0].GetCoordinates()
@@ -132,23 +80,23 @@ class CElement():
             XB = (x2+x3)/2; YB = (y2+y3)/2
             XC = (x3+x1)/2; YC = (y3+y1)/2
 
-            E_xA, E_yA = ComputeError(elem, XA, YA, self.GetPatchArea())
-            E_xB, E_yB = ComputeError(elem, XB, YB, self.GetPatchArea())
-            E_xC, E_yC = ComputeError(elem, XC, YC, self.GetPatchArea())
+            E_xA, E_yA = ComputeError(elem, XA, YA, self.GetPatchVolume())
+            E_xB, E_yB = ComputeError(elem, XB, YB, self.GetPatchVolume())
+            E_xC, E_yC = ComputeError(elem, XC, YC, self.GetPatchVolume())
 
-            patchG[0] += elem.GetArea()/3 * (
+            patchG[0] += elem.GetVolume()/3 * (
                 E_xA * E_xA +
                 E_xB * E_xB +
                 E_xC * E_xC  
             )
 
-            patchG[1] += elem.GetArea()/3 * (
+            patchG[1] += elem.GetVolume()/3 * (
                 E_xA * E_yA +
                 E_xB * E_yB +
                 E_xC * E_yC 
             )
 
-            patchG[2] += elem.GetArea()/3 * (
+            patchG[2] += elem.GetVolume()/3 * (
                 E_yA * E_yA +
                 E_yB * E_yB +
                 E_yC * E_yC 
@@ -159,7 +107,7 @@ class CElement():
         referencePatchG[0,1] = patchG[1] 
         referencePatchG[1,1] = patchG[2] 
         referencePatchG[1,0] = referencePatchG[0,1]
-        referencePatchG /= self.GetPatchArea()
+        referencePatchG /= self.GetPatchVolume()
 
         eigenValRefG, eigenVecRefG = np.linalg.eigh(referencePatchG)
         idx = eigenValRefG.argsort()[::-1]   
@@ -170,16 +118,16 @@ class CElement():
         vecG2 = eigenVecRefG[:,1]
 
         self.ComputeLambdak()
-        referencePatchArea = self.GetPatchArea() / (self.lambda_k[0] * self.lambda_k[1])
+        referencePatchVolume = self.GetPatchVolume() / (self.lambda_k[0] * self.lambda_k[1])
 
-        valGmin = diam**(-2) * toll**2 / (2 * card * referencePatchArea)
+        valGmin = diam**(-2) * toll**2 / (2 * card * referencePatchVolume)
 
         valG1 = max(np.real(eigenValRefG[0]), valGmin)
         valG2 = max(np.real(eigenValRefG[1]), valGmin)
 
         limited = 1 if valG2 == valGmin or valG1 == valGmin else 0
 
-        factor = (toll**2 / (2 * card * referencePatchArea))**0.5
+        factor = (toll**2 / (2 * card * referencePatchVolume))**0.5
 
         lambda_1 = factor * valG2**(-0.5)
         lambda_2 = factor * valG1**(-0.5)
@@ -192,11 +140,6 @@ class CElement():
         return limited
 
 
-def ComputeError(elem, x, y, patchArea):
-    return [elem.GetGradient()[0](x,y) * (elem.GetArea() / patchArea - 1),
-            elem.GetGradient()[1](x,y) * (elem.GetArea() / patchArea - 1)]
-
-
-
-
-
+def ComputeError(elem, x, y, patchVolume):
+    return [elem.GetGradient()[0](x,y) * (elem.GetVolume() / patchVolume - 1),
+            elem.GetGradient()[1](x,y) * (elem.GetVolume() / patchVolume - 1)]
