@@ -4,7 +4,7 @@ class CVertex():
 
     def __init__(self, ID, x, y, z=None):
         self.SetID(ID)
-        if z:
+        if z is not None:
             self.SetCoordinates(x, y, z=z)
         else:
             self.SetCoordinates(x, y)
@@ -17,7 +17,7 @@ class CVertex():
     def SetCoordinates(self, x, y, z=None):
         self.x = x
         self.y = y
-        if z:
+        if z is not None:
             self.z = z
 
     def SetSolution(self, solution):

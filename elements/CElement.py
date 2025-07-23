@@ -41,21 +41,15 @@ class CElement():
         return self.patchElements
     
     def GetVolume(self):
-        if not hasattr(self, 'volume'):
-            self.ComputeVolume()
         return self.volume
     
     def GetPatchVolume(self):
         return self.patchVolume
         
     def GetGradient(self):
-        if not hasattr(self, 'gradient'):
-            self.ComputeGradient()
         return self.gradient
     
     def GetMetric(self):
-        if not hasattr(self, 'metric'):
-            self.ComputeMetric()
         return self.metric
 
 
