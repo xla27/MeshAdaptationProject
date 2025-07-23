@@ -84,6 +84,32 @@ class CTetrahedron(CElement):
 
         patchG = np.zeros(6)
 
+        ID_1_Rows = np.array([[0, 0, 0, 0], 
+                         [0, 0, 0, 0], 
+                         [1, 1, 1, 1], 
+                         [0, 0, 0, 0],
+                         [1, 1, 1, 1], 
+                         [2, 2, 2, 2]])
+        ID_1_Cols = np.array([[0, 1, 2, 3],
+                         [0, 1, 2, 3],
+                         [0, 1, 2, 3],
+                         [0, 1, 2, 3],
+                         [0, 1, 2, 3],
+                         [0, 1, 2, 3]])
+        ID_2_Rows = np.array([[0, 0, 0, 0], 
+                         [1, 1, 1, 1], 
+                         [1, 1, 1, 1], 
+                         [2, 2, 2, 2], 
+                         [2, 2, 2, 2], 
+                         [2, 2, 2, 2]])
+
+        ID_2_Cols = np.array([[0, 1, 2, 3],
+                         [0, 1, 2, 3],
+                         [0, 1, 2, 3],
+                         [0, 1, 2, 3],
+                         [0, 1, 2, 3],
+                         [0, 1, 2, 3]])
+
         for elem in self.patchElements:
             x1,y1,z1 = elem.vertices[0].GetCoordinates()
             x2,y2,z2 = elem.vertices[1].GetCoordinates()
@@ -95,36 +121,54 @@ class CTetrahedron(CElement):
             XC = (x3+x4+x1)/3; YC = (y3+y4+y1)/3; ZC = (z3+z4+z1)/3
             XD = (x4+x1+x2)/3; YD = (y4+y1+y2)/3; ZD = (z4+z1+z2)/3
 
-            E_xA, E_yA, E_zA = ComputeError(elem, XA, YA, ZA, self.GetPatchVolume())
-            E_xB, E_yB, E_zB = ComputeError(elem, XB, YB, ZB, self.GetPatchVolume())
-            E_xC, E_yC, E_zC = ComputeError(elem, XC, YC, ZC, self.GetPatchVolume())
-            E_xD, E_yD, E_zD = ComputeError(elem, XD, YD, ZD, self.GetPatchVolume())
+            # grad_coeffs contains the linear coefficient of interpolation as:
+            # [ax bx cx dx]
+            # [ay by cy dy]
+            # [az bz cz dz]
+            grad_coeffs = elem.GetGradient()
+            # gradient is the mattrix containing the gradient evaluated at A, B, C, D
+            # [gxA gxB gxC gxD]
+            # [gyA gyB gyC gyD]
+            # [gzA gzB gzC gzD]
+            gradient = grad_coeffs @ np.transpose(np.array([[XA, YA, ZA, 1], 
+                                                            [XB, YB, ZB, 1],
+                                                            [XC, YC, ZC, 1],
+                                                            [XD, YD, ZD, 1]]))
+            
+            # Error has the same form as gradient, except for a multiplication factor
+            E = (elem.GetVolume() / self.GetPatchVolume() - 1) * gradient
 
-            # G_xx
-            patchG[0] += elem.GetVolume()/4 * (E_xA * E_xA + E_xB * E_xB + E_xC * E_xC + E_xD * E_xD)
+            patchG += elem.GetVolume()/4 * np.sum(E[ID_1_Rows, ID_1_Cols]*E[ID_2_Rows, ID_2_Cols], axis=1)
 
-            # G_xy
-            patchG[1] += elem.GetVolume()/4 * (E_xA * E_yA + E_xB * E_yB + E_xC * E_yC + E_xD * E_yD)
+            # # G_xx
+            # patchG[0] += elem.GetVolume()/4 * (E_xA * E_xA + E_xB * E_xB + E_xC * E_xC + E_xD * E_xD)
 
-            # G_yy
-            patchG[2] += elem.GetVolume()/4 * (E_yA * E_yA + E_yB * E_yB + E_yC * E_yC + E_yD * E_yD)
+            # # G_xy
+            # patchG[1] += elem.GetVolume()/4 * (E_xA * E_yA + E_xB * E_yB + E_xC * E_yC + E_xD * E_yD)
 
-            # G_xz
-            patchG[3] += elem.GetVolume()/4 * (E_xA * E_zA + E_xB * E_zB + E_xC * E_zC + E_xD * E_zD)
+            # # G_yy
+            # patchG[2] += elem.GetVolume()/4 * (E_yA * E_yA + E_yB * E_yB + E_yC * E_yC + E_yD * E_yD)
 
-            # G_yz
-            patchG[4] += elem.GetVolume()/4 * (E_yA * E_zA + E_yB * E_zB + E_yC * E_zC + E_yD * E_zD)
+            # # G_xz
+            # patchG[3] += elem.GetVolume()/4 * (E_xA * E_zA + E_xB * E_zB + E_xC * E_zC + E_xD * E_zD)
 
-            # G_zz
-            patchG[5] += elem.GetVolume()/4 * (E_zA * E_zA + E_zB * E_zB + E_zC * E_zC + E_zD * E_zD)
+            # # G_yz
+            # patchG[4] += elem.GetVolume()/4 * (E_yA * E_zA + E_yB * E_zB + E_yC * E_zC + E_yD * E_zD)
+
+            # # G_zz
+            # patchG[5] += elem.GetVolume()/4 * (E_zA * E_zA + E_zB * E_zB + E_zC * E_zC + E_zD * E_zD)
+
 
         referencePatchG = np.zeros((3,3))
         referencePatchG[0,0] = patchG[0] 
-        referencePatchG[0,1] = patchG[1]; referencePatchG[1,0] = referencePatchG[0,1] 
+        referencePatchG[0,1] = patchG[1] 
         referencePatchG[1,1] = patchG[2] 
-        referencePatchG[0,2] = patchG[3]; referencePatchG[2,0] = referencePatchG[0,2] 
-        referencePatchG[1,2] = patchG[4]; referencePatchG[2,1] = referencePatchG[1,2] 
+        referencePatchG[0,2] = patchG[3] 
+        referencePatchG[1,2] = patchG[4] 
         referencePatchG[2,2] = patchG[5] 
+        referencePatchG[1,0] = referencePatchG[0,1]
+        referencePatchG[2,0] = referencePatchG[0,2]
+        referencePatchG[2,1] = referencePatchG[1,2]
         referencePatchG /= self.GetPatchVolume()
 
         eigenValRefG, eigenVecRefG = np.linalg.eigh(referencePatchG)
@@ -147,12 +191,6 @@ class CTetrahedron(CElement):
         lambda_3 = factor * valG1**(-0.5)
 
         lambdaNewm2 = np.diag(np.array([lambda_1, lambda_2, lambda_3])**(-2))
-
-        # vecG1 = eigenVecRefG[:,2]
-        # vecG2 = eigenVecRefG[:,1]
-        # vecG3 = eigenVecRefG[:,0]
-        # RkNewT = np.hstack((vecG3[:,np.newaxis], vecG2[:,np.newaxis], vecG1[:,np.newaxis]))
-        # RkNewT = eigenVecRefG    # equivalent form)
 
         self.metric = eigenVecRefG @ lambdaNewm2 @ np.transpose(eigenVecRefG)
 
