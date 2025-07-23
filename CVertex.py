@@ -7,7 +7,7 @@ class CVertex():
         if z is not None:
             self.SetCoordinates(x, y, z=z)
         else:
-            self.SetCoordinates(x, y)
+            self.SetCoordinates(x, y, z=None)
     
     def SetID(self, ID):
         if hasattr(self, 'ID'):
@@ -17,8 +17,7 @@ class CVertex():
     def SetCoordinates(self, x, y, z=None):
         self.x = x
         self.y = y
-        if z is not None:
-            self.z = z
+        self.z = z
 
     def SetSolution(self, solution):
         self.solution = solution
@@ -36,10 +35,7 @@ class CVertex():
         return self.ID
     
     def GetCoordinates(self):
-        if hasattr(self,'z'):
-            return self.x, self.y, self.z
-        else:   
-            return self.x, self.y
+        return self.x, self.y, self.z  
     
     def GetSolution(self):
         return self.solution

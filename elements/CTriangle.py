@@ -9,9 +9,9 @@ class CTriangle(CElement):
         self.SetID(ID)
 
     def ComputeVolume(self):
-        x1,y1 = self.vertices[0].GetCoordinates()
-        x2,y2 = self.vertices[1].GetCoordinates()
-        x3,y3 = self.vertices[2].GetCoordinates()
+        x1, y1, _ = self.vertices[0].GetCoordinates()
+        x2, y2, _ = self.vertices[1].GetCoordinates()
+        x3, y3, _ = self.vertices[2].GetCoordinates()
         self.volume = (1/2) * abs(x1*(y2 - y3) - x2*(y1 - y3) + x3*(y1 - y2))
     
     def ComputePatchVolume(self):
@@ -20,9 +20,9 @@ class CTriangle(CElement):
             self.patchVolume += elem.GetVolume()
     
     def ComputeGradient(self):
-        x1,y1 = self.vertices[0].GetCoordinates()
-        x2,y2 = self.vertices[1].GetCoordinates()
-        x3,y3 = self.vertices[2].GetCoordinates()
+        x1, y1, _ = self.vertices[0].GetCoordinates()
+        x2, y2, _ = self.vertices[1].GetCoordinates()
+        x3, y3, _ = self.vertices[2].GetCoordinates()
 
         gradient_x_1, gradient_y_1 = self.vertices[0].GetGradient()
         gradient_x_2, gradient_y_2 = self.vertices[1].GetGradient()
@@ -41,9 +41,9 @@ class CTriangle(CElement):
         self.gradient = np.array([coeff_gradient_x, coeff_gradient_y])
 
     def ComputeLambdak(self):
-        x1,y1 = self.vertices[0].GetCoordinates()
-        x2,y2 = self.vertices[1].GetCoordinates()
-        x3,y3 = self.vertices[2].GetCoordinates()
+        x1, y1, _ = self.vertices[0].GetCoordinates()
+        x2, y2, _ = self.vertices[1].GetCoordinates()
+        x3, y3, _ = self.vertices[2].GetCoordinates()
 
         Mk = np.zeros((2,2))
         tk = np.zeros(2)
@@ -63,9 +63,9 @@ class CTriangle(CElement):
         patchG = np.zeros(3)
 
         for elem in self.patchElements:
-            x1,y1 = elem.vertices[0].GetCoordinates()
-            x2,y2 = elem.vertices[1].GetCoordinates()
-            x3,y3 = elem.vertices[2].GetCoordinates()
+            x1, y1, _ = self.vertices[0].GetCoordinates()
+            x2, y2, _ = self.vertices[1].GetCoordinates()
+            x3, y3, _ = self.vertices[2].GetCoordinates()
 
             XA = (x1+x2)/2; YA = (y1+y2)/2
             XB = (x2+x3)/2; YB = (y2+y3)/2

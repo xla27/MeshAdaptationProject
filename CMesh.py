@@ -338,8 +338,12 @@ class CMesh():
                 f.write("{} {} {}\n".format(elemType, " ".join(map(str, elem.GetVerticesID())), elem.GetID()))
 
             f.write("NPOIN= {}\n".format(len(vertices)))
-            for i, vert in enumerate(vertices):
-                f.write("{} {}\n".format(" ".join(map(str, vert.GetCoordinates())), vert.GetID()))
+            if dim == 2:
+                for i, vert in enumerate(vertices):
+                    f.write("{} {}\n".format(" ".join(map(str, vert.GetCoordinates()[:-1])), vert.GetID()))
+            elif dim == 3:
+                for i, vert in enumerate(vertices):
+                    f.write("{} {}\n".format(" ".join(map(str, vert.GetCoordinates())), vert.GetID()))
 
             f.write("NMARK= {}\n".format(len(boundaries)))
             for meditTag in boundaries.keys():
@@ -370,8 +374,12 @@ class CMesh():
             
             # Write nodes
             f.write("\nVertices \n{}\n".format(len(mesh['Vertices'])))
-            for vert in vertices:
-                f.write(" ".join(map(str, vert.GetCoordinates())) + " 0\n")  # 0 is the default region ID
+            if dim == 2:
+                for vert in vertices:
+                    f.write(" ".join(map(str, vert.GetCoordinates()[:-1])) + " 0\n")  # 0 is the default region ID
+            elif dim == 3:
+                for vert in vertices:
+                    f.write(" ".join(map(str, vert.GetCoordinates())) + " 0\n")  # 0 is the default region ID
             
             # Write elements (assume triangles for 2D, tetrahedra for 3D)
             if dim == 2:
