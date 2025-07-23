@@ -44,8 +44,8 @@ class CDriver():
         limited = 0
         for element in meshDict[keyElem]:
 
-            # compute element area
-            element.ComputeArea()
+            # compute element volume
+            element.ComputeVolume()
 
             # computing the gradient on the element
             element.ComputeGradient()
@@ -54,8 +54,8 @@ class CDriver():
             element.SetPatchID()
             element.SetPatchElements(self.mesh)
 
-            # computing the patch area
-            element.ComputePatchArea()
+            # computing the patch volume
+            element.ComputePatchVolume()
 
             # computing the element-wise metric
             limited += element.ComputeMetric(toll=self.params['toll'], 
