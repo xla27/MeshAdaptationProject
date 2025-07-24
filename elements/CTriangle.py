@@ -8,11 +8,24 @@ class CTriangle(CElement):
     def __init__(self, ID):
         self.SetID(ID)
 
+    def SetVerticesCoordinatesAndGradient(self):
+
+        self.verticesCoords    = np.zeros((3,2))
+        self.verticesGradients = np.zeros((3,2))
+
+        for i, vertex in enumerate(self.vertices):
+
+            self.verticesCoords[i,:]    = vertex.GetCoordinates()[:-1]
+            self.verticesGradients[i,:] = vertex.GetGradient()
+
+        # A = np.array([[x1, y1, 1],
+        #               [x2, y2, 1],
+        #               [x3, y3, 1]])
+
+        self.A = np.hstack((self.verticesCoords, np.ones((3,1))))
+
     def ComputeVolume(self):
-        x1, y1, _ = self.vertices[0].GetCoordinates()
-        x2, y2, _ = self.vertices[1].GetCoordinates()
-        x3, y3, _ = self.vertices[2].GetCoordinates()
-        self.volume = (1/2) * abs(x1*(y2 - y3) - x2*(y1 - y3) + x3*(y1 - y2))
+        self.volume = (1/2) * abs(np.linalg.det(self.A))
     
     def ComputePatchVolume(self):
         self.patchVolume = 0.0
@@ -20,85 +33,66 @@ class CTriangle(CElement):
             self.patchVolume += elem.GetVolume()
     
     def ComputeGradient(self):
-        x1, y1, _ = self.vertices[0].GetCoordinates()
-        x2, y2, _ = self.vertices[1].GetCoordinates()
-        x3, y3, _ = self.vertices[2].GetCoordinates()
-
-        gradient_x_1, gradient_y_1 = self.vertices[0].GetGradient()
-        gradient_x_2, gradient_y_2 = self.vertices[1].GetGradient()
-        gradient_x_3, gradient_y_3 = self.vertices[2].GetGradient()
-
-        A = np.array([[x1, y1, 1],
-                      [x2, y2, 1],
-                      [x3, y3, 1]])
         
-        f_gradient_x = np.array([gradient_x_1, gradient_x_2, gradient_x_3])
-        f_gradient_y = np.array([gradient_y_1, gradient_y_2, gradient_y_3])
+        # f_gradient_x = np.array([gradient_x_1, gradient_x_2, gradient_x_3])
+        # f_gradient_y = np.array([gradient_y_1, gradient_y_2, gradient_y_3])
 
-        coeff_gradient_x = np.linalg.solve(A, f_gradient_x)
-        coeff_gradient_y = np.linalg.solve(A, f_gradient_y)
+        # coeff_gradient_x = np.linalg.solve(self.A, f_gradient_x)
+        # coeff_gradient_y = np.linalg.solve(self.A, f_gradient_y)
 
-        self.gradient = np.array([coeff_gradient_x, coeff_gradient_y])
+        # self.gradient = np.array([coeff_gradient_x, coeff_gradient_y])
+        self.gradient = np.transpose(np.linalg.solve(self.A, self.verticesGradients))
+
+    def ComputeLocalErrorContribution(self):
+
+        XA = (self.verticesCoords[0,0]+self.verticesCoords[1,0])/2 
+        YA = (self.verticesCoords[0,1]+self.verticesCoords[1,1])/2 
+
+        XB = (self.verticesCoords[1,0]+self.verticesCoords[2,0])/2 
+        YB = (self.verticesCoords[1,1]+self.verticesCoords[2,1])/2 
+
+        XC = (self.verticesCoords[2,0]+self.verticesCoords[1,0])/2 
+        YC = (self.verticesCoords[2,1]+self.verticesCoords[1,1])/2 
+
+        baryMat = np.transpose(np.array([[XA, YA, 1], 
+                                         [XB, YB, 1],
+                                         [XC, YC, 1]]))
+        
+        # gradEvalBary is a (2, 3) np.array storing the gradient 
+        # evaluated at quadrature points along the column
+        gradEvalBary = self.gradient @ baryMat
+
+        self.localErrorContribution = self.volume/3 * np.dot(gradEvalBary, gradEvalBary.T)
 
     def ComputeLambdak(self):
-        x1, y1, _ = self.vertices[0].GetCoordinates()
-        x2, y2, _ = self.vertices[1].GetCoordinates()
-        x3, y3, _ = self.vertices[2].GetCoordinates()
 
         Mk = np.zeros((2,2))
         tk = np.zeros(2)
-        tk[0] = 1/3 * (x1 + x2 + x3)
-        tk[1] = 1/3 * (y1 + y2 + y3)
-        Mk[0,1] = 2 * tk[0] - x1 - x2
-        Mk[1,1] = 2 * tk[1] - y1 - y2
-        Mk[0,0] = 1/np.sqrt(3) * (2 * tk[0] - Mk[0,1] - 2 * x1)
-        Mk[1,0] = 1/np.sqrt(3) * (2 * tk[1] - Mk[1,1] - 2 * y1)
+        tk[0] = 1/3 * (self.verticesCoords[0,0]+self.verticesCoords[1,0]+self.verticesCoords[2,0])
+        tk[1] = 1/3 * (self.verticesCoords[0,1]+self.verticesCoords[1,1]+self.verticesCoords[2,1])
+        Mk[0,1] = 2 * tk[0] - self.verticesCoords[0,0] - self.verticesCoords[1,0]
+        Mk[1,1] = 2 * tk[1] - self.verticesCoords[0,1] - self.verticesCoords[1,1]
+        Mk[0,0] = 1/np.sqrt(3) * (2 * tk[0] - Mk[0,1] - 2 * self.verticesCoords[0,0])
+        Mk[1,0] = 1/np.sqrt(3) * (2 * tk[1] - Mk[1,1] - 2 * self.verticesCoords[0,1])
 
-        _, Bk = polar(Mk, side='left')
-        Lk, _ = np.linalg.eigh(Bk)
-        self.lambda_k = [Lk[1], Lk[0]]
+        self.lambda_k = np.linalg.svd(Mk, compute_uv=False)
 
     def ComputeMetric(self, toll=1.0, diam=1.0, card=1000):
 
-        patchG = np.zeros(3)
+        patchG = np.zeros((2,2))
 
         for elem in self.patchElements:
-            x1, y1, _ = self.vertices[0].GetCoordinates()
-            x2, y2, _ = self.vertices[1].GetCoordinates()
-            x3, y3, _ = self.vertices[2].GetCoordinates()
+            factor = (elem.volume / self.patchVolume - 1)
+            patchG += factor * factor * elem.localErrorContribution
 
-            XA = (x1+x2)/2; YA = (y1+y2)/2
-            XB = (x2+x3)/2; YB = (y2+y3)/2
-            XC = (x3+x1)/2; YC = (y3+y1)/2
+        eigenValRefG, eigenVecRefG = np.linalg.eigh(patchG / self.patchVolume)
 
-            E_xA, E_yA = ComputeError(elem, XA, YA, self.GetPatchVolume())
-            E_xB, E_yB = ComputeError(elem, XB, YB, self.GetPatchVolume())
-            E_xC, E_yC = ComputeError(elem, XC, YC, self.GetPatchVolume())
-
-            patchG[0] += elem.GetVolume()/3 * (E_xA * E_xA + E_xB * E_xB + E_xC * E_xC)
-
-            patchG[1] += elem.GetVolume()/3 * (E_xA * E_yA + E_xB * E_yB + E_xC * E_yC)
-
-            patchG[2] += elem.GetVolume()/3 * (E_yA * E_yA + E_yB * E_yB + E_yC * E_yC)
-
-        referencePatchG = np.zeros((2,2))
-        referencePatchG[0,0] = patchG[0] 
-        referencePatchG[0,1] = patchG[1] 
-        referencePatchG[1,1] = patchG[2] 
-        referencePatchG[1,0] = referencePatchG[0,1]
-        referencePatchG /= self.GetPatchVolume()
-
-        eigenValRefG, eigenVecRefG = np.linalg.eigh(referencePatchG)
-
-        self.ComputeLambdak()
-        referencePatchVolume = self.GetPatchVolume() / (self.lambda_k[0] * self.lambda_k[1])
+        referencePatchVolume = self.patchVolume / np.prod(self.lambda_k)
 
         valGmin = diam**(-2) * toll**2 / (2 * card * referencePatchVolume)
 
         valG1 = max(eigenValRefG[1], valGmin)
         valG2 = max(eigenValRefG[0], valGmin)
-
-        limited = 1 if valG2 == valGmin or valG1 == valGmin else 0
 
         factor = (toll**2 / (2 * card * referencePatchVolume))**0.5
 
@@ -107,18 +101,6 @@ class CTriangle(CElement):
 
         lambdaNewm2 = np.diag(np.array([lambda_1, lambda_2])**(-2))
 
-        # vecG1 = eigenVecRefG[:,1]
-        # vecG2 = eigenVecRefG[:,0]
-        # RkNewT = np.hstack((vecG2[:,np.newaxis], vecG1[:,np.newaxis]))
-        # RkNewT = eigenVecRefG    # equivalent form)
-
         self.metric = eigenVecRefG @ lambdaNewm2 @ np.transpose(eigenVecRefG)
 
-        return limited
-
-
-def ComputeError(elem, x, y, patchVolume):
-    grad_coeffs = elem.GetGradient()
-    gradient = np.dot(grad_coeffs, [x,y,1])
-    factor   = (elem.GetVolume() / patchVolume - 1)
-    return factor * gradient
+        return valG2 == valGmin or valG1 == valGmin

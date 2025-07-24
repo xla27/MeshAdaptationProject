@@ -7,14 +7,14 @@ class CVertex():
         if z is not None:
             self.SetCoordinates(x, y, z=z)
         else:
-            self.SetCoordinates(x, y, z=None)
+            self.SetCoordinates(x, y, z=0.0)
     
     def SetID(self, ID):
         if hasattr(self, 'ID'):
             raise KeyError('Already specified ID!')
         self.ID = int(ID)
     
-    def SetCoordinates(self, x, y, z=None):
+    def SetCoordinates(self, x, y, z):
         self.x = x
         self.y = y
         self.z = z
