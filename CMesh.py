@@ -581,7 +581,7 @@ def read_SU2_restart_binary(mesh, sensor, filename):
         if meshDict['Dim'] == 3:
             coords[iPoint, 2] = data[iPoint, restartFields.index('z')]
 
-    mesh.diameter = np.amax(pdist(coords))
+    mesh.diameter = approximate_diameter(coords)
 
 
 def read_SU2_restart_ascii(mesh, sensor, filename):
@@ -638,4 +638,41 @@ def read_SU2_restart_ascii(mesh, sensor, filename):
         if meshDict['Dim'] == 3:
             coords[iPoint, 2] = data[iPoint, restartFields.index('z')]
 
-    mesh.diameter = np.amax(pdist(coords))
+    mesh.diameter = approximate_diameter(coords)
+
+# mesh diameter computation
+
+
+def approximate_diameter(points, start_idx=None):
+    """
+    Farthest Point Sampling (FPS) for 2D/3D points.
+    
+    Parameters
+    ----------
+    points : ndarray of shape (M, dim)
+        Input points in 3D space.
+    start_idx : int or None
+        Index of starting point. If None, picks a random point.
+    
+    Returns
+    -------
+    p1_idx, p2_idx, max_dist
+        Indices of two farthest points (approximation) and the distance between them.
+    """
+    M = points.shape[0]
+
+    # Step 1: choose starting point
+    if start_idx is None:
+        start_idx = np.random.randint(M)
+    
+    # Step 2: find farthest point from start
+    dists = np.linalg.norm(points - points[start_idx,:], axis=1)
+    p2_idx = np.argmax(dists)
+
+    # Step 3: find farthest point from p2
+    dists = np.linalg.norm(points - points[p2_idx,:], axis=1)
+    p3_idx = np.argmax(dists)
+
+    # Step 4: output
+    max_dist = np.linalg.norm(points[p3_idx] - points[p2_idx])
+    return max_dist
