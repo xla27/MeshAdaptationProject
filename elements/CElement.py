@@ -51,6 +51,9 @@ class CElement():
     
     def GetMetric(self):
         return self.metric
+    
+    def GetAnisotropicError(self):
+        return self.localAnisoError
 
 
 

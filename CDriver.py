@@ -27,7 +27,7 @@ class CDriver():
         self.mesh.FinalizingDataStructure()
         self.params['card'] = self.mesh.cardinality
 
-    def ComputeMetric(self):
+    def ComputeMetricAndAnisoError(self):
 
         # mesh data structure
         meshDict = self.mesh.GetMeshDict()
@@ -36,7 +36,7 @@ class CDriver():
 
         keyElem = 'Triangles' if dim == 2 else 'Tetrahedra'
 
-        print('\tStart metric computation.')
+        # print('\tStart metric computation.')
 
         time_total_init = time.time()
 
@@ -56,10 +56,11 @@ class CDriver():
             element.ComputeLocalErrorContribution()
 
             # computing lambdak
-            element.ComputeLambdak()
+            element.ComputeLambdak(computeRk=True)
 
         # element-wise operations on patches
-        limited = 0
+        limitedElements = 0
+        globalAnisoError = 0.0
         for element in meshDict[keyElem]:
 
             # creating the element patch
@@ -70,14 +71,19 @@ class CDriver():
             element.ComputePatchVolume()
 
             # computing the element-wise metric
-            limited += element.ComputeMetric(toll=self.params['toll'], 
-                                            diam=self.params['diam'], 
-                                            card=self.params['card'])         
-           
-        print('\t\tAspect ratio limited by gmin in %i out of %i elements' %
-              (limited, len(meshDict[keyElem])))
+            limited, localAnisoError = element.ComputeMetricAndAnisoError(toll=self.params['toll'], 
+                                                                          diam=self.params['diam'], 
+                                                                          card=self.params['card'])        
+            limitedElements  += limited
+            globalAnisoError += localAnisoError
+
+        # print('\t\tEstimated global anisotropic error =  %10.5e' %
+        #       (globalAnisoError))
+            
+        # print('\t\tAspect ratio limited by gmin in %i out of %i elements' %
+        #       (limitedElements, len(meshDict[keyElem])))
         
-        print('\t\tTotal time = ', time.time()-time_total_init, ' s')
+        # print('\t\tTotal time = ', time.time()-time_total_init, ' s')
 
 
         # computing the vertex-wise metric
@@ -85,7 +91,9 @@ class CDriver():
 
             vertex.ComputeMetric(self.mesh)
 
-        print('\tEnd metric computation.')
+        # print('\tEnd metric computation.')
+
+        return globalAnisoError, limitedElements, time.time()-time_total_init
 
     def WriteMedit(self, meditFilename, solFilename):
 

@@ -64,7 +64,7 @@ class CTriangle(CElement):
 
         self.localErrorContribution = self.volume/3 * np.dot(gradEvalBary, gradEvalBary.T)
 
-    def ComputeLambdak(self):
+    def ComputeLambdak(self, computeRk=False):
 
         Mk = np.zeros((2,2))
         tk = np.zeros(2)
@@ -75,15 +75,20 @@ class CTriangle(CElement):
         Mk[0,0] = 1/np.sqrt(3) * (2 * tk[0] - Mk[0,1] - 2 * self.verticesCoords[0,0])
         Mk[1,0] = 1/np.sqrt(3) * (2 * tk[1] - Mk[1,1] - 2 * self.verticesCoords[0,1])
 
-        self.lambda_k = np.linalg.svd(Mk, compute_uv=False)
+        if computeRk:
+            self.Rk_T, self.lambda_k, _ = np.linalg.svd(Mk, compute_uv=True)
+        else:
+            self.lambda_k = np.linalg.svd(Mk, compute_uv=False)
 
-    def ComputeMetric(self, toll=1.0, diam=1.0, card=1000):
+    def ComputeMetricAndAnisoError(self, toll=1.0, diam=1.0, card=1000):
 
         patchG = np.zeros((2,2))
 
         for elem in self.patchElements:
             factor = (elem.volume / self.patchVolume - 1)
             patchG += factor * factor * elem.localErrorContribution
+
+        # Metric computation
 
         eigenValRefG, eigenVecRefG = np.linalg.eigh(patchG / self.patchVolume)
 
@@ -103,4 +108,9 @@ class CTriangle(CElement):
 
         self.metric = eigenVecRefG @ lambdaNewm2 @ np.transpose(eigenVecRefG)
 
-        return valG2 == valGmin or valG1 == valGmin
+        # Local error estimate computation
+
+        self.localAnisoError  = np.sum(self.lambda_k**2 * np.diag(np.transpose(self.Rk_T) @ patchG @ self.Rk_T))
+        self.localAnisoError /= np.prod(self.lambda_k)
+
+        return (valG2 == valGmin or valG1 == valGmin), self.localAnisoError
