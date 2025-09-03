@@ -28,10 +28,10 @@
 import os, shutil, copy, time
 
 from SU2 import io as su2io
-from SU2.adap.tools import *
 from SU2.adap.interface import run_command, call_mmg
 from SU2.run.interface import CFD as SU2_CFD
 from CDriver import CDriver
+from tools import *
 
 def mmg(config):
     """
@@ -239,12 +239,14 @@ def mmg(config):
             driver.ReadSU2()
 
             #--- Computing the metric 
-            driver.ComputeMetric()
+            globalAnisoError, limitedElements, elapsedTime =  driver.ComputeMetricAndAnisoError()
 
             #--- Writing the MMG mesh, sol and param file
             driver.WriteMedit(meshfil.replace('.su2', '.mesh'),
                               solfil.replace(sol_ext_cfd, '.sol'))
-
+            
+            #--- Print mesh sizes
+            print_adap_table(iSub, driver.mesh.meshDict, globalAnisoError, limitedElements, elapsedTime)
 
             #--- Adapt mesh with MMG
             meshin = config_cfd['MESH_FILENAME'].replace('.su2','.mesh')
@@ -258,9 +260,6 @@ def mmg(config):
 
             #--- Writing the adapted mesh in SU2 format
             driver.WriteSU2(meshout.replace('.mesh','.su2'))
-
-            #--- Print mesh sizes
-            print_adap_table(iSiz, mesh_sizes, iSub, nSub, driver.mesh.meshDict)
 
             dir = f'./ite{global_iter}'
             os.makedirs(os.path.join('..',dir))
@@ -295,9 +294,10 @@ def mmg(config):
             except:
                 raise
 
-            del driver
-
     #--- Write final files
+    driver.ReadSU2()
+    globalAnisoError, limitedElements, elapsedTime =  driver.ComputeMetricAndAnisoError()
+    print_adap_table(iSub+1, driver.mesh.meshDict, globalAnisoError, limitedElements, elapsedTime)
 
     # fileconverter = MeshSolConverter()
     # fileconverter.SU2ToMeditMesh(meshfil, meshfil.replace('.su2', '.mesh'))

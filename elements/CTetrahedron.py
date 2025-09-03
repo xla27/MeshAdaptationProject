@@ -76,7 +76,7 @@ class CTetrahedron(CElement):
 
         self.localErrorContribution = self.volume/4 * np.dot(gradEvalBary, gradEvalBary.T)
 
-    def ComputeLambdak(self):
+    def ComputeLambdak(self, computeRk=False):
 
         Mk = np.zeros((3,3))
 
@@ -92,15 +92,20 @@ class CTetrahedron(CElement):
         Mk[1,2] = 1/4 * (3*self.verticesCoords[3,1]-self.verticesCoords[0,1]-self.verticesCoords[1,1]-self.verticesCoords[2,1])
         Mk[2,2] = 1/4 * (3*self.verticesCoords[3,2]-self.verticesCoords[0,2]-self.verticesCoords[1,2]-self.verticesCoords[2,2])
 
-        self.lambda_k = np.linalg.svd(Mk, compute_uv=False)
+        if computeRk:
+            self.Rk_T, self.lambda_k, _ = np.linalg.svd(Mk, compute_uv=True)
+        else:
+            self.lambda_k = np.linalg.svd(Mk, compute_uv=False)
 
-    def ComputeMetric(self, toll=1.0, diam=1.0, card=1000):
+    def ComputeMetricAndAnisoError(self, toll=1.0, diam=1.0, card=1000):
 
         patchG = np.zeros((3,3))
 
         for elem in self.patchElements:
             factor = (elem.volume / self.patchVolume - 1)
             patchG += factor * factor * elem.localErrorContribution
+
+        # Metric computation
 
         eigenValRefG, eigenVecRefG = np.linalg.eigh(patchG / self.patchVolume)
 
@@ -122,4 +127,10 @@ class CTetrahedron(CElement):
 
         self.metric = eigenVecRefG @ lambdaNewm2 @ np.transpose(eigenVecRefG)
 
-        return (valG2 == valGmin or valG1 == valGmin or valG3 == valGmin)
+        # Local error estimate computation
+
+        self.localAnisoError  = np.sum(self.lambda_k**2 * np.diag(np.transpose(self.Rk_T) @ patchG @ self.Rk_T))
+        self.localAnisoError /= np.prod(self.lambda_k)**(2/3)
+
+        return (valG2 == valGmin or valG1 == valGmin or valG3 == valGmin), self.localAnisoError
+    
