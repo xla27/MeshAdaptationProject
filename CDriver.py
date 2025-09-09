@@ -1,5 +1,6 @@
 from CMesh import CMesh
 import time
+import numpy as np
 
 class CDriver():
 
@@ -93,7 +94,7 @@ class CDriver():
 
         # print('\tEnd metric computation.')
 
-        return globalAnisoError, limitedElements, time.time()-time_total_init
+        return np.sqrt(globalAnisoError), limitedElements, time.time()-time_total_init
 
     def WriteMedit(self, meditFilename, solFilename):
 
