@@ -257,7 +257,7 @@ def ReadMeditMeshBinary(mesh, meshFilename, verbose=False):
                     vertex = CVertex(j, vert[0], vert[1])
                     vertices.append(vertex)
             else:
-                for j, vert in enumerate(vertices):
+                for j, vert in enumerate(verticesList):
                     vertex = CVertex(j, vert[0], vert[1], z=vert[2])
                     vertices.append(vertex)
 
@@ -864,6 +864,11 @@ def WriteParamFile(mesh, configMmg, meshFilename):
             boundaries = meshDict['Triangles']
             elemType = 'Triangles'
             mmgExt = '.mmg3d'
+
+        if meshFilename.endswith('.mesh'):
+            paramFilename = meshFilename.replace('.mesh', mmgExt)
+        elif meshFilename.endswith('.meshb'):
+            paramFilename = meshFilename.replace('.meshb', mmgExt)
 
         paramFilename = meshFilename + mmgExt
         with open(paramFilename, 'w') as f:
