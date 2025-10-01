@@ -380,7 +380,7 @@ def CheckSurplusPoints(meshDict):
     whichAreSurplusPoints = np.where(isIn == False)[0]
     
     if (len(whichAreSurplusPoints) > 0):
-        # print("There are surplus points in mesh file for unknown reasons.")
+        print("There are surplus points in mesh file for unknown reasons.")
         # print("Surplus points:", whichAreSurplusPoints)
         # print("Deleting it and then fix connectivity...")
         # SubtractIDs = np.zeros((nVertices, ), dtype=int)
