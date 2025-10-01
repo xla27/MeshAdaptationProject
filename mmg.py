@@ -31,9 +31,9 @@ from SU2 import io as su2io
 from SU2.adap.interface import run_command, call_mmg
 from SU2.run.interface import CFD as SU2_CFD
 from CDriver import CDriver
-from tools import *
+from utilities.tools import *
 
-def mmg(config):
+def mmg(config, binarymedit, verbose):
     """
     Runs the a mesh adaptation loop with the MMG library.
 
@@ -131,6 +131,12 @@ def mmg(config):
         history_filename = os.path.join(base_dir, 'history_adap.dat')
     else:
         history_filename = os.path.join(base_dir, 'history_adap.csv')
+
+    #--- Format Medit meshfiles
+    if binarymedit:
+        meditFormat = '.meshb'
+    else:
+        meditFormat = '.mesh'
 
     #--- Get mesh dimension
 
@@ -242,15 +248,15 @@ def mmg(config):
             globalAnisoError, limitedElements, elapsedTime =  driver.ComputeMetricAndAnisoError()
 
             #--- Writing the MMG mesh, sol and param file
-            driver.WriteMedit(meshfil.replace('.su2', '.mesh'),
+            driver.WriteMedit(meshfil.replace('.su2', meditFormat),
                               solfil.replace(sol_ext_cfd, '.sol'))
             
             #--- Print mesh sizes
             print_adap_table(iSub, driver.mesh.meshDict, globalAnisoError, limitedElements, elapsedTime)
 
             #--- Adapt mesh with MMG
-            meshin = config_cfd['MESH_FILENAME'].replace('.su2','.mesh')
-            meshout = config_cfd['MESH_OUT_FILENAME'].replace('.su2','.mesh')
+            meshin = config_cfd['MESH_FILENAME'].replace('.su2',meditFormat)
+            meshout = config_cfd['MESH_OUT_FILENAME'].replace('.su2',meditFormat)
 
             solfile = config_cfd['RESTART_FILENAME'].replace(sol_ext_cfd,'.sol')
             call_mmg(meshin, meshout, solfile, config_mmg)
@@ -259,7 +265,7 @@ def mmg(config):
             driver.ReadMedit(meshout)
 
             #--- Writing the adapted mesh in SU2 format
-            driver.WriteSU2(meshout.replace('.mesh','.su2'))
+            driver.WriteSU2(meshout.replace(meditFormat,'.su2'))
 
             dir = f'./ite{global_iter}'
             os.makedirs(os.path.join('..',dir))
@@ -298,12 +304,9 @@ def mmg(config):
     driver.ReadSU2()
     globalAnisoError, limitedElements, elapsedTime =  driver.ComputeMetricAndAnisoError()
     print_adap_table(iSub+1, driver.mesh.meshDict, globalAnisoError, limitedElements, elapsedTime)
-
-    # fileconverter = MeshSolConverter()
-    # fileconverter.SU2ToMeditMesh(meshfil, meshfil.replace('.su2', '.mesh'))
-
-    # os.rename(solfil, os.path.join(base_dir, config.RESTART_FILENAME))
-    # os.rename(meshfil, os.path.join(base_dir, config.MESH_OUT_FILENAME))
+    os.chdir('../..')
+    driver.WriteSU2(config_cfd['MESH_OUT_FILENAME'])
+    shutil.copy(f'adap/ite{global_iter}/{config.RESTART_FILENAME}','.')
 
     pad_nul = ' '*15
     print('\nMesh adaptation successfully ended.')

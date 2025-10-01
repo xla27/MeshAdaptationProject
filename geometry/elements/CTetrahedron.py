@@ -2,7 +2,7 @@ import numpy as np
 from scipy.linalg import polar
 import time
 
-from elements.CElement import CElement
+from geometry.elements.CElement import CElement
 
 class CTetrahedron(CElement):
 

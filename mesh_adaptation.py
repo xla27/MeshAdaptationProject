@@ -43,10 +43,16 @@ def main():
                       help="read config from FILE", metavar="FILE")
     parser.add_option("-n", "--partitions", dest="partitions", default=0,
                       help="number of PARTITIONS", metavar="PARTITIONS")
+    parser.add_option("-b", "--binarymedit", dest="binarymedit", default=1,
+                      help="read and write binary medit mesh", metavar="BINARYMEDIT")
+    parser.add_option("-v", "--verbose", dest="verbose", default=0,
+                      help="increase print for debug", metavar="VERBOSE")
 
     (options, args)=parser.parse_args()
 
     options.partitions = int( options.partitions )
+    options.binarymedit = bool( options.binarymedit )
+    options.verbose = bool( options.verbose )
 
     sys.stdout.write(
         "\n-------------------------------------------------------------------------\n"
@@ -132,7 +138,9 @@ def main():
     
     # Run Mesh Adaptation
     mesh_adaptation ( options.filename   ,
-                      options.partitions )
+                      options.partitions ,
+                      options.binarymedit, 
+                      options.verbose     )
 
 #: def main()
 
@@ -141,8 +149,10 @@ def main():
 #  Mesh Adaptation Function
 # -------------------------------------------------------------------
 
-def mesh_adaptation( filename       ,
-                     partitions = 0 ):
+def mesh_adaptation( filename          ,
+                     partitions = 0    ,
+                     binarymedit = True,
+                     verbose = False    ):
     
     if not filename:
         sys.stderr.write("  ## ERROR : a .cfg file must be provided.\n");
@@ -158,7 +168,11 @@ def mesh_adaptation( filename       ,
     config.NUMBER_PART = partitions
     
     # Call CFD to generate a solution
-    mmg(config)
+    if verbose:
+        binarymedit = False
+    mmg(config,
+        binarymedit,
+        verbose)
     
 #: def mesh_adaptation()
 

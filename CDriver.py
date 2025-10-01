@@ -1,4 +1,5 @@
-from CMesh import CMesh
+from geometry.CMesh import CMesh
+from utilities.input_output import WriteParamFile
 import time
 import numpy as np
 
@@ -105,7 +106,7 @@ class CDriver():
         self.mesh.WriteSolMedit(solFilename)
 
         # write mmg parameters file
-        self.mesh.WriteParamFile(self.params, meditFilename)
+        WriteParamFile(self.mesh, self.params, meditFilename)
 
     def ReadMedit(self, meditFilename):
         self.mesh.ReadMeshMedit(meditFilename)

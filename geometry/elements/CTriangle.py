@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.linalg import polar, eig
 
-from elements.CElement import CElement
+from geometry.elements.CElement import CElement
 
 class CTriangle(CElement):
 
