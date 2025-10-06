@@ -153,6 +153,10 @@ def get_adap_sensors(config):
     """Get adaptation sensors"""
     return config['ADAP_SENSOR'].replace(' ','').strip('()').split(',')
 
+def get_adap_tols(config):
+    """Get adaptation tolerances"""
+    return config['ADAP_TOLL'].replace(' ','').strip('()').split(',')
+
 def set_flow_config_ini(config, cur_solfil, sensor_tags, mesh_size):
     """Set primal config for initial solution"""
     config.CONV_FILENAME       = 'history'
@@ -345,14 +349,17 @@ def create_sensor(solution, sensor_tags):
 
     return sensor_wrap
 
-def print_adap_table(iter, mesh, error, limited, time):
+def print_adap_table(iter, mesh, error, limited, time, nSensors):
     """Print adapted mesh sizes to a table"""
     dim = mesh['Dim']
 
     #--- Header
     if iter == 0:
         print('+=================================================================+')
-        print('|   Iter   |   Elem   |   Vert   |   Error  |   Lim.   |   Time   |')
+        header = '|   Iter   |   Elem   |   Vert   |   Time   |'
+        for iSensor in range(nSensors):
+            header += f'  Err. S{iSensor} |  Lim. S{iSensor} |'
+        print(header)
         print('+=================================================================+')
         
     #--- Data
@@ -364,7 +371,9 @@ def print_adap_table(iter, mesh, error, limited, time):
     else:
         nelem = nelts['Tetrahedra']
     
-    line = '|    %i     |  %i  |  %i  | %1.3e |  %i  | %1.3e |' % (iter, nelem, nvert, error, limited, time)
+    line = '|    %i     |  %i  |  %i  | %1.3e |' % (iter, nelem, nvert, time)
+    for iSensor in range(nSensors):
+        line += ' %1.3e |  %i  |' % (error[iSensor], limited[iSensor])
     print(line)
 
     print('+-----------------------------------------------------------------+')

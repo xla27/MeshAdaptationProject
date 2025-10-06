@@ -8,16 +8,18 @@ class CTetrahedron(CElement):
 
     def __init__(self, ID):
         self.SetID(ID)
+        self.dim = 3
 
     def SetVerticesCoordinatesAndGradient(self):
 
-        self.verticesCoords    = np.zeros((4,3))
-        self.verticesGradients = np.zeros((4,3))
+        self.verticesCoords    = np.zeros((4, 3))
+        self.verticesGradients = np.zeros((4, 3, self.nSensors))
 
-        for i, vertex in enumerate(self.vertices):
+        for iVert, vertex in enumerate(self.vertices):
 
-            self.verticesCoords[i,:]    = vertex.GetCoordinates()
-            self.verticesGradients[i,:] = vertex.GetGradient()
+            self.verticesCoords[iVert,:] = vertex.GetCoordinates()
+            for iSensor in range(self.nSensors):
+                self.verticesGradients[iVert,:,iSensor] = vertex.GetGradient(iSensor=iSensor)
 
         # A = np.array([[x1, y1, z1, 1],
         #               [x2, y2, z2, 1],
@@ -26,29 +28,7 @@ class CTetrahedron(CElement):
 
         self.A = np.hstack((self.verticesCoords, np.ones((4,1))))
 
-    def ComputeVolume(self):
-        self.volume = (1/6) * abs(np.linalg.det(self.A))
-    
-    def ComputePatchVolume(self):
-        self.patchVolume = 0.0
-        for elem in self.patchElements:
-            self.patchVolume += elem.volume
-    
-    def ComputeGradient(self):
-        
-        # f_gradient_x = np.array([gradient_x_1, gradient_x_2, gradient_x_3, gradient_x_4])
-        # f_gradient_y = np.array([gradient_y_1, gradient_y_2, gradient_y_3, gradient_y_4])
-        # f_gradient_z = np.array([gradient_z_1, gradient_z_2, gradient_z_3, gradient_z_4])
-
-        # coeff_gradient_x = np.linalg.solve(self.A, f_gradient_x)
-        # coeff_gradient_y = np.linalg.solve(self.A, f_gradient_y)
-        # coeff_gradient_z = np.linalg.solve(self.A, f_gradient_z)
-        
-        # self.gradient = np.array([coeff_gradient_x, coeff_gradient_y, coeff_gradient_z])
-        self.gradient = np.transpose(np.linalg.solve(self.A, self.verticesGradients))
-
-    def ComputeLocalErrorContribution(self):
-
+        # barycentric matrix
         XA = (self.verticesCoords[0,0]+self.verticesCoords[1,0]+self.verticesCoords[2,0])/3 
         YA = (self.verticesCoords[0,1]+self.verticesCoords[1,1]+self.verticesCoords[2,1])/3 
         ZA = (self.verticesCoords[0,2]+self.verticesCoords[1,2]+self.verticesCoords[2,2])/3 
@@ -65,16 +45,39 @@ class CTetrahedron(CElement):
         YD = (self.verticesCoords[3,1]+self.verticesCoords[0,1]+self.verticesCoords[1,1])/3 
         ZD = (self.verticesCoords[3,2]+self.verticesCoords[0,2]+self.verticesCoords[1,2])/3 
 
-        baryMat = np.transpose(np.array([[XA, YA, ZA, 1], 
-                                         [XB, YB, ZB, 1],
-                                         [XC, YC, ZC, 1],
-                                         [XD, YD, ZD, 1]]))
+        self.baryMat = np.transpose(np.array([[XA, YA, ZA, 1], 
+                                              [XB, YB, ZB, 1],
+                                              [XC, YC, ZC, 1],
+                                              [XD, YD, ZD, 1]]))
+
+    def ComputeVolume(self):
+        self.volume = (1/6) * abs(np.linalg.det(self.A))
+    
+    def ComputePatchVolume(self):
+        self.patchVolume = 0.0
+        for elem in self.patchElements:
+            self.patchVolume += elem.volume
+    
+    def ComputeGradient(self, iSensor=0):
         
+        # f_gradient_x = np.array([gradient_x_1, gradient_x_2, gradient_x_3, gradient_x_4])
+        # f_gradient_y = np.array([gradient_y_1, gradient_y_2, gradient_y_3, gradient_y_4])
+        # f_gradient_z = np.array([gradient_z_1, gradient_z_2, gradient_z_3, gradient_z_4])
+
+        # coeff_gradient_x = np.linalg.solve(self.A, f_gradient_x)
+        # coeff_gradient_y = np.linalg.solve(self.A, f_gradient_y)
+        # coeff_gradient_z = np.linalg.solve(self.A, f_gradient_z)
+        
+        # self.gradient = np.array([coeff_gradient_x, coeff_gradient_y, coeff_gradient_z])
+        self.gradient[:,:,iSensor] = np.transpose(np.linalg.solve(self.A, self.verticesGradients[:,:,iSensor]))
+
+    def ComputeLocalErrorContribution(self, iSensor=0):
+      
         # gradEvalBary is a (3, 4) np.array storing the gradient 
         # evaluated at quadrature points along the column
-        gradEvalBary = self.gradient @ baryMat
+        gradEvalBary = self.gradient[:,:,iSensor] @ self.baryMat
 
-        self.localErrorContribution = self.volume/4 * np.dot(gradEvalBary, gradEvalBary.T)
+        self.localErrorContribution[:,:,iSensor] = self.volume/4 * np.dot(gradEvalBary, gradEvalBary.T)
 
     def ComputeLambdak(self, computeRk=False):
 
@@ -97,13 +100,13 @@ class CTetrahedron(CElement):
         else:
             self.lambda_k = np.linalg.svd(Mk, compute_uv=False)
 
-    def ComputeMetricAndAnisoError(self, toll=1.0, diam=1.0, card=1000):
+    def ComputeMetricAndAnisoError(self, iSensor=0, toll=1.0, diam=1.0, card=1000):
 
         patchG = np.zeros((3,3))
 
         for elem in self.patchElements:
             factor = (elem.volume / self.patchVolume - 1)
-            patchG += factor * factor * elem.localErrorContribution
+            patchG += factor * factor * elem.localErrorContribution[iSensor]
 
         # Metric computation
 
@@ -125,12 +128,14 @@ class CTetrahedron(CElement):
 
         lambdaNewm2 = np.diag(np.array([lambda_1, lambda_2, lambda_3])**(-2))
 
-        self.metric = eigenVecRefG @ lambdaNewm2 @ np.transpose(eigenVecRefG)
+        metric = eigenVecRefG @ lambdaNewm2 @ np.transpose(eigenVecRefG)
+        self.SetMetric(metric, iSensor=iSensor)
 
         # Local error estimate computation
 
-        self.localAnisoError  = np.sum(self.lambda_k**2 * np.diag(np.transpose(self.Rk_T) @ patchG @ self.Rk_T))
-        self.localAnisoError /= np.prod(self.lambda_k)**(2/3)
+        localAnisoError  = np.sum(self.lambda_k**2 * np.diag(np.transpose(self.Rk_T) @ patchG @ self.Rk_T))
+        localAnisoError /= np.prod(self.lambda_k)**(2/3)
+        self.SetAnisotropicError(localAnisoError, iSensor=iSensor)
 
-        return (valG2 == valGmin or valG1 == valGmin or valG3 == valGmin), self.localAnisoError
+        return (valG2 == valGmin or valG1 == valGmin or valG3 == valGmin), localAnisoError
     

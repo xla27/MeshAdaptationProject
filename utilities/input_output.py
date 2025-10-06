@@ -646,7 +646,7 @@ def WriteMeditMeshBinary(mesh, meshFilename, verbose=False):
 
 CGNS_STRING_SIZE = 33  # Fixed string size per CGNS standard
 
-def ReadSU2RestartBinary(mesh, sensor, filename):
+def ReadSU2RestartBinary(mesh, sensor, iSensor, filename):
     """
     Read SU2 binary restart file and return fields and data array.
 
@@ -698,6 +698,8 @@ def ReadSU2RestartBinary(mesh, sensor, filename):
         meshDict['Dim'] = 2  
         fieldsToRead = [sensor, 'Grad(Sensor)_x', 'Grad(Sensor)_y']
 
+    nondim = 14252 if sensor == 'Pressure' else 0.754
+
     coords = np.zeros((nPoints, meshDict['Dim']))
     for iPoint in range(nPoints):
         vert = mesh.GetVertex(iPoint)
@@ -706,12 +708,12 @@ def ReadSU2RestartBinary(mesh, sensor, filename):
         for field in fieldsToRead:
             iField = restartFields.index(field)
             if field == sensor:
-                solution += data[iPoint, iField]
+                solution += data[iPoint, iField] / nondim
             else:
-                gradient.append(data[iPoint, iField])
+                gradient.append(data[iPoint, iField] / nondim)
 
-        vert.SetSolution(solution)
-        vert.SetGradient(gradient)
+        vert.SetSolution(solution, iSensor=iSensor)
+        vert.SetGradient(gradient, iSensor=iSensor)
 
         coords[iPoint, 0] = data[iPoint, restartFields.index('x')]
         coords[iPoint, 1] = data[iPoint, restartFields.index('y')]
@@ -721,7 +723,7 @@ def ReadSU2RestartBinary(mesh, sensor, filename):
     mesh.diameter = ApproximateDiameter(coords)
 
 
-def ReadSU2RestartASCII(mesh, sensor, filename):
+def ReadSU2RestartASCII(mesh, sensor, iSensor, filename):
     """
     Read SU2 ASCII restart file and return fields and data array.
 
@@ -767,8 +769,8 @@ def ReadSU2RestartASCII(mesh, sensor, filename):
             else:
                 gradient.append(data[iPoint, iField])
 
-        vert.SetSolution(solution)
-        vert.SetGradient(gradient)
+        vert.SetSolution(solution, iSensor=iSensor)
+        vert.SetGradient(gradient, iSensor=iSensor)
 
         coords[iPoint, 0] = data[iPoint, restartFields.index('x')]
         coords[iPoint, 1] = data[iPoint, restartFields.index('y')]

@@ -85,8 +85,6 @@ def mmg(config, binarymedit, verbose):
     for sensor in adap_sensors:
         if sensor not in sensor_avail:
             raise ValueError(f'Unknown adaptation sensor {sensor}. Available options are {sensor_avail}.')
-        
-    sensor = sensor_avail_restart_format[sensor_avail.index(sensor)]
 
     #--- Change current directory
 
@@ -147,7 +145,8 @@ def mmg(config, binarymedit, verbose):
     #--- MMG parameters
 
     config_mmg = get_mmg_config(config, dim)
-    config_mmg['toll'] = float(config.ADAP_TOLL)
+    tols = get_adap_tols(config)
+    config_mmg['toll'] = [float(tol) for tol in tols]
 
     #--- Compute initial solution if needed, else link current files
 
@@ -239,10 +238,13 @@ def mmg(config, binarymedit, verbose):
             config_mmg['size'] = mesh_size
 
             #--- Instantiating the driver
-            driver = CDriver(sensor, meshfil, solfil,params=config_mmg)
+            driver = CDriver(adap_sensors, meshfil, solfil, params=config_mmg)
+
+            #--- Computing the gradients of the solution
+            driver.ComputeSU2Gradients(config_cfd)
 
             #--- Initializing the driver (SU2 mesh and sol reading)
-            driver.ReadSU2()
+            driver.ReadSU2(config_cfd)
 
             #--- Computing the metric 
             globalAnisoError, limitedElements, elapsedTime =  driver.ComputeMetricAndAnisoError()
@@ -252,7 +254,7 @@ def mmg(config, binarymedit, verbose):
                               solfil.replace(sol_ext_cfd, '.sol'))
             
             #--- Print mesh sizes
-            print_adap_table(iSub, driver.mesh.meshDict, globalAnisoError, limitedElements, elapsedTime)
+            print_adap_table(iSub, driver.mesh.meshDict, globalAnisoError, limitedElements, elapsedTime, len(adap_sensors))
 
             #--- Adapt mesh with MMG
             meshin = config_cfd['MESH_FILENAME'].replace('.su2',meditFormat)
@@ -301,9 +303,14 @@ def mmg(config, binarymedit, verbose):
                 raise
 
     #--- Write final files
-    driver.ReadSU2()
+    driver.ComputeSU2Gradients(config_cfd)
+
+    driver.ReadSU2(config_cfd)
+
     globalAnisoError, limitedElements, elapsedTime =  driver.ComputeMetricAndAnisoError()
-    print_adap_table(iSub+1, driver.mesh.meshDict, globalAnisoError, limitedElements, elapsedTime)
+
+    print_adap_table(iSub+1, driver.mesh.meshDict, globalAnisoError, limitedElements, elapsedTime, len(adap_sensors))
+    
     os.chdir('../..')
     driver.WriteSU2(config_cfd['MESH_OUT_FILENAME'])
     shutil.copy(f'adap/ite{global_iter}/{config.RESTART_FILENAME}','.')

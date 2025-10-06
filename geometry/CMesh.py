@@ -95,7 +95,7 @@ class CMesh():
             'Elements': {elem.GetID(): elem for elem in self.meshDict[keyElem]}
         }
 
-    def FinalizingDataStructure(self):
+    def FinalizingDataStructure(self, sensors):
         '''
         For each vertex:
         - setting neighbouring elements
@@ -132,9 +132,12 @@ class CMesh():
                     elementsNeighbours[vi].add(eid)
                     elementsNeighbours[vj].add(eid)
 
+            element.SetSensors(sensors)
+
         for vert in self.meshDict['Vertices']:
             vert.SetVerticesNeighboursID(list(verticesNeighbours[vert.GetID()]))
             vert.SetElementsNeighboursID(list(elementsNeighbours[vert.GetID()]))
+            vert.SetSensors(sensors)
 
         # computing the mesh cardinality
         self.cardinality = len(self.meshDict[keyElem])
@@ -147,14 +150,18 @@ class CMesh():
 
         return meshDict
 
-    def ReadSolSU2(self, sensor, su2Filename):
+    def ReadSolSU2(self, sensor, iSensor, su2Filename):
         """
         Reads a .csv/.dat SU2 solution file to obtain the sensor and the gradient at each vertex. 
         """
+        # changing the format of sensor string to search in the restart file fields e.g. MACH -> Mach
+        old_sensor = sensor
+        sensor = old_sensor[0] + (old_sensor[1:]).lower()
+
         if '.dat' in su2Filename:
-            ReadSU2RestartBinary(self, sensor, su2Filename)
+            ReadSU2RestartBinary(self, sensor, iSensor, su2Filename)
         elif '.csv' in su2Filename:
-            ReadSU2RestartASCII(self, sensor, su2Filename) 
+            ReadSU2RestartASCII(self, sensor, iSensor, su2Filename) 
     
     def ReadMeshMedit(self, meditFilename):
         """ 

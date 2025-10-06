@@ -1,33 +1,61 @@
+import os, sys, shutil
+import time, copy
+import numpy as np
+from SU2.run.interface import CFD as SU2_CFD
+from SU2.io import redirect
 from geometry.CMesh import CMesh
 from utilities.input_output import WriteParamFile
-import time
-import numpy as np
+
 
 class CDriver():
 
-    def __init__(self, sensor, meshFilename, solFilename, params):
-        self.sensor = sensor
+    def __init__(self, sensors, meshFilename, solFilename, params):
+        self.sensors = sensors
+        self.nSensors = len(sensors)
         self.meshFilename = meshFilename
         self.solFilename = solFilename
         self.params = params
         return
     
-    def ReadSU2(self):
+    def ComputeSU2Gradients(self, configCfd):
+
+        # performing a single CFD iterations to compute the adaptation sensors gradients
+        konfigCfd = copy.deepcopy(configCfd)
+
+        konfigCfd['ITER'] = 1
+        konfigCfd['SOLUTION_FILENAME'] = konfigCfd['RESTART_FILENAME']
+        ext = '.dat' if konfigCfd['RESTART_FILENAME'].endswith('dat') else '.csv'
+
+        for iSensor, sensor in enumerate(self.sensors):
+            konfigCfd['ADAP_SENSOR'] = sensor
+            konfigCfd['RESTART_FILENAME'] = f'restart_{sensor}{ext}'
+            konfigCfd['CONV_FILENAME'] = f'history_{sensor}'
+
+            with redirect.output(f'su2_{sensor}.out'): SU2_CFD(konfigCfd)
+
+            os.remove(konfigCfd['CONV_FILENAME']+'.csv')
+
+        return
+    
+    def ReadSU2(self, configCfd):
 
         self.mesh = CMesh()
 
         # reading mesh .su2
         self.mesh.ReadMeshSU2(self.meshFilename)
 
+        # finalizing data structure
+        self.mesh.FinalizingDataStructure(self.sensors)
+        self.params['card'] = self.mesh.cardinality
+
         # reading the solution
-        self.mesh.ReadSolSU2(self.sensor, self.solFilename)
+        for iSensor, sensor in enumerate(self.sensors):
+            ext = '.dat' if configCfd['RESTART_FILENAME'].endswith('dat') else '.csv'
+            solFilename = f'restart_{sensor}{ext}'
+            self.mesh.ReadSolSU2(sensor, iSensor, solFilename)
 
         # setting the mesh diameter as param
         self.params['diam'] = self.mesh.diameter
-
-        # finalizing data structure
-        self.mesh.FinalizingDataStructure()
-        self.params['card'] = self.mesh.cardinality
 
     def ComputeMetricAndAnisoError(self):
 
@@ -48,21 +76,24 @@ class CDriver():
             # assigning vertices coordinates and gradients 
             element.SetVerticesCoordinatesAndGradient()
 
-            # compute element volume
-            element.ComputeVolume()
-
-            # computing the gradient on the element
-            element.ComputeGradient()
-
-            # computing local error contribution
-            element.ComputeLocalErrorContribution()
-
             # computing lambdak
             element.ComputeLambdak(computeRk=True)
 
+            # compute element volume
+            element.ComputeVolume()
+
+            for iSensor in range(self.nSensors):
+
+                # computing the gradient on the element
+                element.ComputeGradient(iSensor=iSensor)
+
+                # computing local error contribution
+                element.ComputeLocalErrorContribution(iSensor=iSensor)
+
+
         # element-wise operations on patches
-        limitedElements = 0
-        globalAnisoError = 0.0
+        limitedElements  = np.zeros(self.nSensors, dtype=int)
+        globalAnisoError = np.zeros(self.nSensors)
         for element in meshDict[keyElem]:
 
             # creating the element patch
@@ -73,20 +104,16 @@ class CDriver():
             element.ComputePatchVolume()
 
             # computing the element-wise metric
-            limited, localAnisoError = element.ComputeMetricAndAnisoError(toll=self.params['toll'], 
-                                                                          diam=self.params['diam'], 
-                                                                          card=self.params['card'])        
-            limitedElements  += limited
-            globalAnisoError += localAnisoError
+            for iSensor, sensor in enumerate(self.sensors):
+                limited, localAnisoError = element.ComputeMetricAndAnisoError(iSensor=iSensor,
+                                                                            toll=self.params['toll'][iSensor], 
+                                                                            diam=self.params['diam'], 
+                                                                            card=self.params['card'])        
+                limitedElements[iSensor]  += limited
+                globalAnisoError[iSensor] += localAnisoError
 
-        # print('\t\tEstimated global anisotropic error =  %10.5e' %
-        #       (globalAnisoError))
-            
-        # print('\t\tAspect ratio limited by gmin in %i out of %i elements' %
-        #       (limitedElements, len(meshDict[keyElem])))
-        
-        # print('\t\tTotal time = ', time.time()-time_total_init, ' s')
-
+            # intersect the metric
+            element.IntersectMetric()
 
         # computing the vertex-wise metric
         for vertex in meshDict['Vertices']:
