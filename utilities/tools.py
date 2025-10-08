@@ -72,6 +72,8 @@ def get_mmg_config(config_su2, dim):
                 config_mmg['hausd'][parameters[i_par].strip(' ')] = float(parameters[i_par+1])
     else:
         config_mmg['hausd'] = float(config_su2['ADAP_HAUSD'])
+
+    if 'ADAP_ANGLE' in config_su2: config_mmg['ar'] = int(config_su2['ADAP_ANGLE'])
     
     return config_mmg
 
