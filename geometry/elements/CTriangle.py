@@ -5,6 +5,8 @@ from geometry.elements.CElement import CElement
 
 class CTriangle(CElement):
 
+    alpha = 1/6
+
     def __init__(self, ID):
         self.SetID(ID)
 
@@ -23,6 +25,11 @@ class CTriangle(CElement):
         #               [x3, y3, 1]])
 
         self.A = np.hstack((self.verticesCoords, np.ones((3,1))))
+
+        # gaussian quadrature points
+        temp = self.alpha * np.sum(self.verticesCoords, axis=0)
+        quadMat = (1 - 3*self.alpha) * self.verticesCoords +self.alpha * np.repeat(temp[np.newaxis,:],repeats=3,axis=0)
+        self.quadMat = np.hstack((quadMat, np.ones((3,1))))
 
     def ComputeVolume(self):
         self.volume = (1/2) * abs(np.linalg.det(self.A))
@@ -45,24 +52,12 @@ class CTriangle(CElement):
 
     def ComputeLocalErrorContribution(self):
 
-        XA = (self.verticesCoords[0,0]+self.verticesCoords[1,0])/2 
-        YA = (self.verticesCoords[0,1]+self.verticesCoords[1,1])/2 
-
-        XB = (self.verticesCoords[1,0]+self.verticesCoords[2,0])/2 
-        YB = (self.verticesCoords[1,1]+self.verticesCoords[2,1])/2 
-
-        XC = (self.verticesCoords[2,0]+self.verticesCoords[1,0])/2 
-        YC = (self.verticesCoords[2,1]+self.verticesCoords[1,1])/2 
-
-        baryMat = np.transpose(np.array([[XA, YA, 1], 
-                                         [XB, YB, 1],
-                                         [XC, YC, 1]]))
-        
+       
         # gradEvalBary is a (2, 3) np.array storing the gradient 
         # evaluated at quadrature points along the column
-        gradEvalBary = self.gradient @ baryMat
+        gradEvalQuad = self.gradient @ self.quadMat
 
-        self.localErrorContribution = self.volume/3 * np.dot(gradEvalBary, gradEvalBary.T)
+        self.localErrorContribution = self.volume/3 * np.dot(gradEvalQuad, gradEvalQuad.T)
 
     def ComputeLambdak(self, computeRk=False):
 

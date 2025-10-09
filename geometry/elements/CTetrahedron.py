@@ -6,6 +6,8 @@ from geometry.elements.CElement import CElement
 
 class CTetrahedron(CElement):
 
+    alpha = 1/4 - np.sqrt(5) * 20
+
     def __init__(self, ID):
         self.SetID(ID)
 
@@ -25,6 +27,11 @@ class CTetrahedron(CElement):
         #               [x4, y4, z4, 1]])
 
         self.A = np.hstack((self.verticesCoords, np.ones((4,1))))
+
+        # gaussian quadrature points
+        temp = self.alpha * np.sum(self.verticesCoords, axis=0)
+        quadMat = (1 - 4*self.alpha) * self.verticesCoords +self.alpha * np.repeat(temp[np.newaxis,:],repeats=4,axis=0)
+        self.quadMat = np.hstack((quadMat, np.ones((4,1))))
 
     def ComputeVolume(self):
         self.volume = (1/6) * abs(np.linalg.det(self.A))
@@ -49,32 +56,9 @@ class CTetrahedron(CElement):
 
     def ComputeLocalErrorContribution(self):
 
-        XA = (self.verticesCoords[0,0]+self.verticesCoords[1,0]+self.verticesCoords[2,0])/3 
-        YA = (self.verticesCoords[0,1]+self.verticesCoords[1,1]+self.verticesCoords[2,1])/3 
-        ZA = (self.verticesCoords[0,2]+self.verticesCoords[1,2]+self.verticesCoords[2,2])/3 
+        gradEvalQuad = self.gradient @ self.quadMat
 
-        XB = (self.verticesCoords[1,0]+self.verticesCoords[2,0]+self.verticesCoords[3,0])/3 
-        YB = (self.verticesCoords[1,1]+self.verticesCoords[2,1]+self.verticesCoords[3,1])/3 
-        ZB = (self.verticesCoords[1,2]+self.verticesCoords[2,2]+self.verticesCoords[3,2])/3 
-
-        XC = (self.verticesCoords[2,0]+self.verticesCoords[3,0]+self.verticesCoords[0,0])/3 
-        YC = (self.verticesCoords[2,1]+self.verticesCoords[3,1]+self.verticesCoords[0,1])/3 
-        ZC = (self.verticesCoords[2,2]+self.verticesCoords[3,2]+self.verticesCoords[0,2])/3 
-
-        XD = (self.verticesCoords[3,0]+self.verticesCoords[0,0]+self.verticesCoords[1,0])/3 
-        YD = (self.verticesCoords[3,1]+self.verticesCoords[0,1]+self.verticesCoords[1,1])/3 
-        ZD = (self.verticesCoords[3,2]+self.verticesCoords[0,2]+self.verticesCoords[1,2])/3 
-
-        baryMat = np.transpose(np.array([[XA, YA, ZA, 1], 
-                                         [XB, YB, ZB, 1],
-                                         [XC, YC, ZC, 1],
-                                         [XD, YD, ZD, 1]]))
-        
-        # gradEvalBary is a (3, 4) np.array storing the gradient 
-        # evaluated at quadrature points along the column
-        gradEvalBary = self.gradient @ baryMat
-
-        self.localErrorContribution = self.volume/4 * np.dot(gradEvalBary, gradEvalBary.T)
+        self.localErrorContribution = self.volume/4 * np.dot(gradEvalQuad, gradEvalQuad.T)
 
     def ComputeLambdak(self, computeRk=False):
 
